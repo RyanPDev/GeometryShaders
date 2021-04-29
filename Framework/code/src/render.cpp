@@ -516,6 +516,9 @@ class LoadObject {
 		vec3 result;\n\
 		float attenuation;\n\
 		void main(){\n\
+			/*if(mod(gl_FragCoord.x, 2) > 0.5){\n\
+				discard;\n\
+			}*/\n\
 			// AMBIENT // \n\
 			ambient = ambientStrength * lightColor * ambientColor;\n\
 			\n\
@@ -906,8 +909,17 @@ void GLrender(float dt) {
 	//S'actualitza i es dibuixa a cada objecte del vector
 	for (int i = 0; i < objectVectors.size(); i++)
 	{
+		if (i == 0) // Solo lo va a hacer con el gato
+		{
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //haz la variable para modificar la alpha desde imgui
+		}
 		objectVectors[i].updateObj();
 		objectVectors[i].drawObj();
+		if (i == 0) // Solo lo va a hacer con el gato
+		{
+			glDisable(GL_BLEND);
+		}
 	}
 
 	ImGui::Render();
