@@ -610,6 +610,7 @@ public:
 		name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 	{
 		bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
+		stbi_set_flip_vertically_on_load(true);
 		unsigned char* data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
 
 		name.erase(name.size() - 4, name.size());
