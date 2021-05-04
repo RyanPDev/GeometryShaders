@@ -1,5 +1,3 @@
-#include <GL\glew.h>
-#include <glm\gtc\type_ptr.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 #include <cstdio>
 #include <cassert>
@@ -9,8 +7,7 @@
 #include <imgui\imgui_impl_sdl_gl3.h>
 
 #include "GL_framework.h"
-#include <iostream>
-#include <string>
+#include "Shader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -126,36 +123,36 @@ void GLmousecb(MouseEvent ev) {
 }
 
 //////////////////////////////////////////////////
-GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name = "") {
-	GLuint shader = glCreateShader(shaderType);
-	glShaderSource(shader, 1, &shaderStr, NULL);
-	glCompileShader(shader);
-	GLint res;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &res);
-	if (res == GL_FALSE) {
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &res);
-		char* buff = new char[res];
-		glGetShaderInfoLog(shader, res, &res, buff);
-		fprintf(stderr, "Error Shader %s: %s", name, buff);
-		delete[] buff;
-		glDeleteShader(shader);
-		return 0;
-	}
-	return shader;
-}
+//GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name = "") {
+//	GLuint shader = glCreateShader(shaderType);
+//	glShaderSource(shader, 1, &shaderStr, NULL);
+//	glCompileShader(shader);
+//	GLint res;
+//	glGetShaderiv(shader, GL_COMPILE_STATUS, &res);
+//	if (res == GL_FALSE) {
+//		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &res);
+//		char* buff = new char[res];
+//		glGetShaderInfoLog(shader, res, &res, buff);
+//		fprintf(stderr, "Error Shader %s: %s", name, buff);
+//		delete[] buff;
+//		glDeleteShader(shader);
+//		return 0;
+//	}
+//	return shader;
+//}
 
-void linkProgram(GLuint program) {
-	glLinkProgram(program);
-	GLint res;
-	glGetProgramiv(program, GL_LINK_STATUS, &res);
-	if (res == GL_FALSE) {
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &res);
-		char* buff = new char[res];
-		glGetProgramInfoLog(program, res, &res, buff);
-		fprintf(stderr, "Error Link: %s", buff);
-		delete[] buff;
-	}
-}
+//void linkProgram(GLuint program) {
+//	glLinkProgram(program);
+//	GLint res;
+//	glGetProgramiv(program, GL_LINK_STATUS, &res);
+//	if (res == GL_FALSE) {
+//		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &res);
+//		char* buff = new char[res];
+//		glGetProgramInfoLog(program, res, &res, buff);
+//		fprintf(stderr, "Error Link: %s", buff);
+//		delete[] buff;
+//	}
+//}
 
 ////////////////////////////////////////////////// AXIS
 namespace Axis {
@@ -260,7 +257,7 @@ namespace Cube {
 	GLuint cubeVbo[3];
 	GLuint cubeShaders[2];
 	GLuint cubeProgram;
-
+	Shader cubeShader;
 	glm::mat4 objMat = glm::mat4(1.f);
 
 	extern const float halfW = 0.5f;
@@ -319,17 +316,18 @@ namespace Cube {
 	};
 
 	const char* cube_vertShader =
-		"#version 330\n\
-in vec3 in_Position;\n\
-in vec3 in_Normal;\n\
-out vec4 vert_Normal;\n\
-uniform mat4 objMat;\n\
-uniform mat4 mv_Mat;\n\
-uniform mat4 mvpMat;\n\
-void main() {\n\
-	gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
-	vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-}";
+	"#version 330\n\
+	in vec3 in_Position;\n\
+	in vec3 in_Normal;\n\
+	out vec4 vert_Normal;\n\
+	uniform mat4 objMat;\n\
+	uniform mat4 mv_Mat;\n\
+	uniform mat4 mvpMat;\n\
+	void main() {\n\
+		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+		vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+	}";
+
 	const char* cube_fragShader =
 		"#version 330\n\
 in vec4 vert_Normal;\n\
@@ -362,15 +360,16 @@ void main() {\n\
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		cubeShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
-		cubeShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
+		cubeShader = Shader();
+		//cubeShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
+		//cubeShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
 
-		cubeProgram = glCreateProgram();
-		glAttachShader(cubeProgram, cubeShaders[0]);
-		glAttachShader(cubeProgram, cubeShaders[1]);
-		glBindAttribLocation(cubeProgram, 0, "in_Position");
-		glBindAttribLocation(cubeProgram, 1, "in_Normal");
-		linkProgram(cubeProgram);
+		//cubeProgram = glCreateProgram();
+		//glAttachShader(cubeProgram, cubeShaders[0]);
+		//glAttachShader(cubeProgram, cubeShaders[1]);
+		//glBindAttribLocation(cubeProgram, 0, "in_Position");
+		//glBindAttribLocation(cubeProgram, 1, "in_Normal");
+		//linkProgram(cubeProgram);
 	}
 	void cleanupCube() {
 		glDeleteBuffers(3, cubeVbo);
@@ -442,21 +441,18 @@ void main() {\n\
 class LoadObject {
 	std::vector< glm::vec3 > vertices;
 	std::vector< glm::vec2 > uvs;
-	std::vector< glm::vec3 > normals; // Won't be used at the moment.
+	std::vector< glm::vec3 > normals;
+
+	Shader shader;
 
 	GLuint ObjVao;
 	GLuint textureID;
 	GLuint ObjVbo[3];
-	GLuint ObjShader[2];
-	GLuint ObjProgram;
 
 	glm::mat4 objMat;
 
-	//layout(location = 2) in vec2 aUvs; \n\
-	//Uvs = aUvs;\n\
-
 #pragma region Shaders
-	const char* Obj_vertShader =
+	/*const char* Obj_vertShader =
 		"#version 330 core\n\
 		layout(location = 0) in vec3 aPos;\n\
 		layout(location = 1) in vec2 aUvs; \n\
@@ -473,130 +469,130 @@ class LoadObject {
 			Normal = mat3(transpose(inverse(model))) * aNormal; \n\
 			gl_Position = projection * view * vec4(FragPos, 1.0); \n\
 			Uvs = aUvs;\n\
-	}";
+	}";*/
 
-	const char* Obj_fragShader =
-		"#version 330 core\n\
-		out vec4 FragColor; \n\
-		in vec3 Normal; \n\
-		in vec3 FragPos; \n\
-		in vec2 Uvs; \n\
-		uniform sampler2D diffuseTexture; \n\
-		uniform mat4 view;\n\
-		uniform vec3 lightPos; \n\
-		uniform vec3 spotLightDir; \n\
-		uniform vec3 lightColor; \n\
-		uniform vec3 objectColor; \n\
-		uniform vec3 ambientColor; \n\
-		uniform vec3 specularColor; \n\
-		uniform float lightIntensity;\n\
-		\n\
-		uniform float ambientStrength;\n\
-		uniform float diffuseStrength;\n\
-		\n\
-		uniform float specularStrength;\n\
-		uniform float shininessValue;\n\
-		uniform int lightType;\n\
-		uniform float constant;\n\
-		uniform float linear;\n\
-		uniform float quadratic;\n\
-		uniform int attenuationActive;\n\
-		uniform float cutOff;\n\
-		vec3 norm;\n\
-		float diff;\n\
-		vec3 ambient;\n\
-		vec3 diffuse;\n\
-		vec3 viewPos;\n\
-		vec3 viewDir;\n\
-		vec3 lightDir;\n\
-		vec3 reflectDir;\n\
-		float spec;\n\
-		float distance;\n\
-		vec3 specular;\n\
-		vec3 result;\n\
-		float attenuation;\n\
-		void main(){\n\
-			/*if(mod(gl_FragCoord.x, 2) > 0.5){\n\
-				discard;\n\
-			}*/\n\
-			// AMBIENT // \n\
-			ambient = ambientStrength * lightColor * ambientColor;\n\
-			\n\
-			switch (lightType) {\n\
-			case 1:\n\
-				// DIFFUSE // \n\
-				\n\
-				lightDir = normalize(-lightPos);\n\
-				norm = normalize(Normal);\n\
-				\n\
-				diff = max(dot(norm, -lightDir), 0.0);\n\
-				diffuse = diff * diffuseStrength * lightColor;\n\
-				// SPECULAR // \n\
-				\n\
-				viewPos = vec3(inverse(view)[3]); \n\
-				viewDir = normalize(viewPos - FragPos); \n\
-				reflectDir = reflect(lightDir, norm); \n\
-				spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
-				specular = specularStrength * spec * lightColor;\n\
-				result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
-				break;\n\
-			case 2:\n\
-				// DIFFUSE // \n\
-				\n\
-				distance = length(lightPos - FragPos);\n\
-				attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));\n\
-				norm = normalize(Normal);\n\
-				lightDir = normalize(lightPos - FragPos);\n\
-				\n\
-				diff = max(dot(norm, lightDir), 0.0);\n\
-				diffuse = diff * diffuseStrength * lightColor;\n\
-				// SPECULAR // \n\
-				\n\
-				viewPos = vec3(inverse(view)[3]); \n\
-				viewDir = normalize(viewPos - FragPos); \n\
-				reflectDir = reflect(-lightDir, norm); \n\
-				spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
-				specular = specularStrength * spec * lightColor;\n\
-				ambient = ambient * attenuation;\n\
-				diffuse = diffuse * attenuation;\n\
-				specular = specular * attenuation;\n\
-				result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
-				break;\n\
-			case 3:\n\
-				lightDir = normalize(lightPos - FragPos);\n\
-				viewPos = vec3(inverse(view)[3]); \n\
-				viewDir = normalize(viewPos - FragPos); \n\
-				float theta = dot(lightDir, normalize(-spotLightDir));\n\
-				if (theta > cutOff){\n\
-					\n\
-					// DIFFUSE // \n\
-					norm = normalize(Normal);\n\
-					diff = max(dot(norm, lightDir), 0.0);\n\
-					diffuse = diff * diffuseStrength * lightColor;\n\
-					\n\
-					// SPECULAR // \n\
-					reflectDir = reflect(-lightDir, norm); \n\
-					spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
-					specular = specularStrength * spec * lightColor;\n\
-					\n\
-					distance = length(lightPos - FragPos);\n\
-					if(attenuationActive == 1)\n\
-					{\n\
-					attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));\n\
-					diffuse = diffuse * attenuation; \n\
-					specular = specular * attenuation; \n\
-					}\n\
-					\n\
-					\n\
-					result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
-				}\n\
-				else {\n\
-					result = ambient;\n\
-				}\n\
-				break;\n\
-			}\n\
-			FragColor = texture(diffuseTexture, Uvs) * vec4(result, 1.0); \n\
-		}";
+	//const char* Obj_fragShader =
+	//	"#version 330 core\n\
+	//	out vec4 FragColor; \n\
+	//	in vec3 Normal; \n\
+	//	in vec3 FragPos; \n\
+	//	in vec2 Uvs; \n\
+	//	uniform sampler2D diffuseTexture; \n\
+	//	uniform mat4 view;\n\
+	//	uniform vec3 lightPos; \n\
+	//	uniform vec3 spotLightDir; \n\
+	//	uniform vec3 lightColor; \n\
+	//	uniform vec3 objectColor; \n\
+	//	uniform vec3 ambientColor; \n\
+	//	uniform vec3 specularColor; \n\
+	//	uniform float lightIntensity;\n\
+	//	\n\
+	//	uniform float ambientStrength;\n\
+	//	uniform float diffuseStrength;\n\
+	//	\n\
+	//	uniform float specularStrength;\n\
+	//	uniform float shininessValue;\n\
+	//	uniform int lightType;\n\
+	//	uniform float constant;\n\
+	//	uniform float linear;\n\
+	//	uniform float quadratic;\n\
+	//	uniform int attenuationActive;\n\
+	//	uniform float cutOff;\n\
+	//	vec3 norm;\n\
+	//	float diff;\n\
+	//	vec3 ambient;\n\
+	//	vec3 diffuse;\n\
+	//	vec3 viewPos;\n\
+	//	vec3 viewDir;\n\
+	//	vec3 lightDir;\n\
+	//	vec3 reflectDir;\n\
+	//	float spec;\n\
+	//	float distance;\n\
+	//	vec3 specular;\n\
+	//	vec3 result;\n\
+	//	float attenuation;\n\
+	//	void main(){\n\
+	//		/*if(mod(gl_FragCoord.x, 2) > 0.5){\n\
+	//			discard;\n\
+	//		}*/\n\
+	//		// AMBIENT // \n\
+	//		ambient = ambientStrength * lightColor * ambientColor;\n\
+	//		\n\
+	//		switch (lightType) {\n\
+	//		case 1:\n\
+	//			// DIFFUSE // \n\
+	//			\n\
+	//			lightDir = normalize(-lightPos);\n\
+	//			norm = normalize(Normal);\n\
+	//			\n\
+	//			diff = max(dot(norm, -lightDir), 0.0);\n\
+	//			diffuse = diff * diffuseStrength * lightColor;\n\
+	//			// SPECULAR // \n\
+	//			\n\
+	//			viewPos = vec3(inverse(view)[3]); \n\
+	//			viewDir = normalize(viewPos - FragPos); \n\
+	//			reflectDir = reflect(lightDir, norm); \n\
+	//			spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
+	//			specular = specularStrength * spec * lightColor;\n\
+	//			result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
+	//			break;\n\
+	//		case 2:\n\
+	//			// DIFFUSE // \n\
+	//			\n\
+	//			distance = length(lightPos - FragPos);\n\
+	//			attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));\n\
+	//			norm = normalize(Normal);\n\
+	//			lightDir = normalize(lightPos - FragPos);\n\
+	//			\n\
+	//			diff = max(dot(norm, lightDir), 0.0);\n\
+	//			diffuse = diff * diffuseStrength * lightColor;\n\
+	//			// SPECULAR // \n\
+	//			\n\
+	//			viewPos = vec3(inverse(view)[3]); \n\
+	//			viewDir = normalize(viewPos - FragPos); \n\
+	//			reflectDir = reflect(-lightDir, norm); \n\
+	//			spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
+	//			specular = specularStrength * spec * lightColor;\n\
+	//			ambient = ambient * attenuation;\n\
+	//			diffuse = diffuse * attenuation;\n\
+	//			specular = specular * attenuation;\n\
+	//			result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
+	//			break;\n\
+	//		case 3:\n\
+	//			lightDir = normalize(lightPos - FragPos);\n\
+	//			viewPos = vec3(inverse(view)[3]); \n\
+	//			viewDir = normalize(viewPos - FragPos); \n\
+	//			float theta = dot(lightDir, normalize(-spotLightDir));\n\
+	//			if (theta > cutOff){\n\
+	//				\n\
+	//				// DIFFUSE // \n\
+	//				norm = normalize(Normal);\n\
+	//				diff = max(dot(norm, lightDir), 0.0);\n\
+	//				diffuse = diff * diffuseStrength * lightColor;\n\
+	//				\n\
+	//				// SPECULAR // \n\
+	//				reflectDir = reflect(-lightDir, norm); \n\
+	//				spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessValue); \n\
+	//				specular = specularStrength * spec * lightColor;\n\
+	//				\n\
+	//				distance = length(lightPos - FragPos);\n\
+	//				if(attenuationActive == 1)\n\
+	//				{\n\
+	//				attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));\n\
+	//				diffuse = diffuse * attenuation; \n\
+	//				specular = specular * attenuation; \n\
+	//				}\n\
+	//				\n\
+	//				\n\
+	//				result = (ambient + diffuse + (specular * specularColor)) * objectColor * lightIntensity; \n\
+	//			}\n\
+	//			else {\n\
+	//				result = ambient;\n\
+	//			}\n\
+	//			break;\n\
+	//		}\n\
+	//		FragColor = texture(diffuseTexture, Uvs) * vec4(result, 1.0); \n\
+	//	}";
 
 
 #pragma endregion
@@ -614,7 +610,7 @@ public:
 		name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 	{
 		bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
-		unsigned char* data = stbi_load("texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
+		unsigned char* data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
 
 		name.erase(name.size() - 4, name.size());
 
@@ -633,7 +629,7 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
+		stbi_image_free(data);		
 
 		glGenBuffers(3, ObjVbo);
 
@@ -656,16 +652,19 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		ObjShader[0] = compileShader(Obj_vertShader, GL_VERTEX_SHADER, "ObjVert");
-		ObjShader[1] = compileShader(Obj_fragShader, GL_FRAGMENT_SHADER, "ObjFrag");
+		shader = Shader("shader.vs", "shader.fs");
 
-		ObjProgram = glCreateProgram();
-		glAttachShader(ObjProgram, ObjShader[0]);
-		glAttachShader(ObjProgram, ObjShader[1]);
-		glBindAttribLocation(ObjProgram, 0, "aPos");
-		glBindAttribLocation(ObjProgram, 1, "aUvs");
-		glBindAttribLocation(ObjProgram, 2, "aNormal");
-		linkProgram(ObjProgram);
+		glBindAttribLocation(shader.programID, 0, "aPos");
+		glBindAttribLocation(shader.programID, 1, "aUvs");
+		glBindAttribLocation(shader.programID, 2, "aNormal");
+
+		//ObjShader[0] = shader.CompileShader(Obj_vertShader, GL_VERTEX_SHADER, "ObjVert");
+		//ObjShader[1] = shader.CompileShader(Obj_fragShader, GL_FRAGMENT_SHADER, "ObjFrag");
+		//shader.LinkProgram(ObjProgram);
+
+		//ObjProgram = glCreateProgram();
+		//glAttachShader(ObjProgram, ObjShader[0]);
+		//glAttachShader(ObjProgram, ObjShader[1]);
 		updateObj();
 	}
 
@@ -674,9 +673,10 @@ public:
 		glDeleteBuffers(3, ObjVbo);
 		glDeleteVertexArrays(1, &ObjVao);
 
-		glDeleteProgram(ObjProgram);
+		/*glDeleteProgram(shader.programID);
 		glDeleteShader(ObjShader[0]);
-		glDeleteShader(ObjShader[1]);
+		glDeleteShader(ObjShader[1]);*/
+		shader.CleanUpShader();
 
 		glDeleteTextures(1, &textureID);
 	}
@@ -694,31 +694,52 @@ public:
 
 	void drawObj()
 	{
-		glUseProgram(ObjProgram);
+		shader.Use();
+		//glUseProgram(ObjProgram);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureID);
 		glBindVertexArray(ObjVao);
-
-		glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "model"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "view"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "projection"), 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
-		glUniform3f(glGetUniformLocation(ObjProgram, "objectColor"), objectColor.x, objectColor.y, objectColor.z);
-		glUniform3f(glGetUniformLocation(ObjProgram, "lightColor"), light.color.x, light.color.y, light.color.z);
-		glUniform3f(glGetUniformLocation(ObjProgram, "lightPos"), light.position.x, light.position.y, light.position.z);
-		glUniform3f(glGetUniformLocation(ObjProgram, "spotLightDir"), light.spotLightDirection.x, light.spotLightDirection.y, light.spotLightDirection.z);
-		glUniform1f(glGetUniformLocation(ObjProgram, "lightIntensity"), light.intensity);
-		glUniform1i(glGetUniformLocation(ObjProgram, "attenuationActive"), light.attenuationActivated);
-		glUniform1i(glGetUniformLocation(ObjProgram, "lightType"), (int)light.type);
-		glUniform1f(glGetUniformLocation(ObjProgram, "constant"), light.constant);
-		glUniform1f(glGetUniformLocation(ObjProgram, "linear"), light.linear);
-		glUniform1f(glGetUniformLocation(ObjProgram, "quadratic"), light.quadratic);
-		glUniform1f(glGetUniformLocation(ObjProgram, "cutOff"), light.cutOff);
-		glUniform1f(glGetUniformLocation(ObjProgram, "ambientStrength"), light.ambientIntensity);
-		glUniform3f(glGetUniformLocation(ObjProgram, "ambientColor"), light.ambientColor.x, light.ambientColor.y, light.ambientColor.z);
-		glUniform1f(glGetUniformLocation(ObjProgram, "diffuseStrength"), light.diffuseIntensity);
-		glUniform1f(glGetUniformLocation(ObjProgram, "specularStrength"), light.specularIntensity);
-		glUniform3f(glGetUniformLocation(ObjProgram, "specularColor"), light.specularColor.x, light.specularColor.y, light.specularColor.z);
-		glUniform1f(glGetUniformLocation(ObjProgram, "shininessValue"), light.shininessValue);
+		//glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "model"), 1, GL_FALSE, glm::value_ptr(objMat));
+		//glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "view"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		//glUniformMatrix4fv(glGetUniformLocation(ObjProgram, "projection"), 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
+		shader.SetMat4("model", 1, GL_FALSE, glm::value_ptr(objMat));
+		shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		shader.SetMat4("projection", 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
+		shader.SetFloat3("objectColor", objectColor);
+		shader.SetFloat3("lightColor", light.color);
+		shader.SetFloat3("lightPos", light.position);
+		shader.SetFloat3("spotLightDir", light.spotLightDirection);
+		shader.SetFloat("lightIntensity", light.intensity);
+		shader.SetInt("attenuationActive", light.attenuationActivated);
+		shader.SetInt("lightType", (int)light.type);
+		shader.SetFloat("constant", light.constant);
+		shader.SetFloat("linear", light.linear);
+		shader.SetFloat("quadratic", light.quadratic);
+		shader.SetFloat("cutOff", light.cutOff);
+		shader.SetFloat("ambientStrength", light.ambientIntensity);
+		shader.SetFloat3("ambientColor", light.ambientColor);
+		shader.SetFloat("diffuseStrength", light.diffuseIntensity);
+		shader.SetFloat("specularStrength", light.specularIntensity);
+		shader.SetFloat3("specularColor", light.specularColor);
+		shader.SetFloat("shininessValue", light.shininessValue);
+		
+		//glUniform3f(glGetUniformLocation(ObjProgram, "objectColor"), objectColor.x, objectColor.y, objectColor.z);
+		//glUniform3f(glGetUniformLocation(ObjProgram, "lightColor"), light.color.x, light.color.y, light.color.z);
+		//glUniform3f(glGetUniformLocation(ObjProgram, "lightPos"), light.position.x, light.position.y, light.position.z);
+		//glUniform3f(glGetUniformLocation(ObjProgram, "spotLightDir"), light.spotLightDirection.x, light.spotLightDirection.y, light.spotLightDirection.z);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "lightIntensity"), light.intensity);
+		//glUniform1i(glGetUniformLocation(ObjProgram, "attenuationActive"), light.attenuationActivated);
+		//glUniform1i(glGetUniformLocation(ObjProgram, "lightType"), (int)light.type);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "constant"), light.constant);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "linear"), light.linear);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "quadratic"), light.quadratic);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "cutOff"), light.cutOff);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "ambientStrength"), light.ambientIntensity);
+		//glUniform3f(glGetUniformLocation(ObjProgram, "ambientColor"), light.ambientColor.x, light.ambientColor.y, light.ambientColor.z);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "diffuseStrength"), light.diffuseIntensity);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "specularStrength"), light.specularIntensity);
+		//glUniform3f(glGetUniformLocation(ObjProgram, "specularColor"), light.specularColor.x, light.specularColor.y, light.specularColor.z);
+		//glUniform1f(glGetUniformLocation(ObjProgram, "shininessValue"), light.shininessValue);
 		//glUniform1i(glGetUniformLocation(ObjProgram, "diffuseTexture"), 0);
 
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -749,31 +770,7 @@ public:
 #pragma endregion
 };
 
-GLuint program;
-GLuint VAO;
-GLuint VBO;
-
 std::vector<LoadObject> objectVectors; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
-
-//Inicialitza les posicions dels objectes en l'escena de l'animació del Dolly Effect
-void LoadDollyAnimationScene()
-{
-	/*objectVectors[0].dollyPos = glm::vec3(0, 1.83f, 2.33);
-	objectVectors[0].dollyRot = glm::vec3(0, 4.71f, 12.66f);
-	objectVectors[0].dollyScale = glm::vec3(0.14f, 0.14f, 0.14f);*/
-
-	//objectVectors[1].dollyPos = glm::vec3(3.16f, -0.08f, -12.83f);
-	//objectVectors[1].dollyRot = glm::vec3(0, 0, 0);
-	//objectVectors[1].dollyScale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-	//objectVectors[2].dollyPos = glm::vec3(-3.59f, 0.23f, -34.07f);
-	//objectVectors[2].dollyRot = glm::vec3(0, 0, 0);
-	//objectVectors[2].dollyScale = glm::vec3(0.13f, 0.13f, 0.13f);
-
-	//objectVectors[3].dollyPos = glm::vec3(-2.23f, -0.67f, -13.25f);
-	//objectVectors[3].dollyRot = glm::vec3(0, 4.88f, 0);
-	//objectVectors[3].dollyScale = glm::vec3(0.002f, 0.002f, 0.002f);
-}
 
 void GLinit(int width, int height) {
 
@@ -792,41 +789,10 @@ void GLinit(int width, int height) {
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	LoadObject Dragon("dragon.obj", glm::vec3(3.26f, 0, 2.61f), glm::vec3(0, 4.71f, 0), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.05f, 0.52f, 0.54f));
-	LoadObject Neko("cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(0.14f, 0.14f, 0.14f));
-	LoadObject Table("table.obj", glm::vec3(1.54f, -9.14f, -1.99f), glm::vec3(0, 0, 0), glm::vec3(0.33f, 0.33f, 0.33f), glm::vec3(0.2f, 0.1f, 0.03f));
-	LoadObject Deer("deer.obj", glm::vec3(-9.37f, -9.24f, 1.91f), glm::vec3(0, 5.69f, 0), glm::vec3(0.01f, 0.01f, 0.01f), glm::vec3(0.321, 0.584, 0.352));
+	LoadObject Neko("cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
 
 	//Emmagatzema els objectes creats al vector
 	objectVectors.push_back(Neko);
-	objectVectors.push_back(Table);
-	objectVectors.push_back(Dragon);
-	objectVectors.push_back(Deer);
-
-	LoadDollyAnimationScene();
-}
-
-//Permet canviar d'escena entre l'escena de demostració d'il·luminació i l'escena del Dolly Effect
-void ChangeScene(bool dollyScene)
-{
-	if (dollyScene)
-	{
-		for (int i = 0; i < objectVectors.size(); i++)
-		{
-			objectVectors[i].position = objectVectors[i].dollyPos;
-			objectVectors[i].rotation = objectVectors[i].dollyRot;
-			objectVectors[i].scale = objectVectors[i].dollyScale;
-		}
-	}
-	else
-	{
-		for (int i = 0; i < objectVectors.size(); i++)
-		{
-			objectVectors[i].position = objectVectors[i].initPos;
-			objectVectors[i].rotation = objectVectors[i].initRot;
-			objectVectors[i].scale = objectVectors[i].initScale;
-		}
-	}
 }
 
 void GLcleanup() {
@@ -900,8 +866,6 @@ void GLrender(float dt) {
 		}
 	}
 
-	//std::cout << "FOV degrees: " << glm::degrees(RV::FOV) << "\n"; //--> Cout pel debug del canvi del FOV en graus.
-
 	RV::_MVP = RV::_projection * RV::_modelView;
 	Axis::drawAxis();
 	Cube::drawTwoCubes();
@@ -909,17 +873,17 @@ void GLrender(float dt) {
 	//S'actualitza i es dibuixa a cada objecte del vector
 	for (int i = 0; i < objectVectors.size(); i++)
 	{
-		if (i == 0) // Solo lo va a hacer con el gato
-		{
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //haz la variable para modificar la alpha desde imgui
-		}
+		//if (i == 0) // Solo lo va a hacer con el gato
+		//{
+		//	glEnable(GL_BLEND);
+		//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//}
 		objectVectors[i].updateObj();
 		objectVectors[i].drawObj();
-		if (i == 0) // Solo lo va a hacer con el gato
-		{
-			glDisable(GL_BLEND);
-		}
+		//if (i == 0) // Solo lo va a hacer con el gato
+		//{
+		//	glDisable(GL_BLEND);
+		//}
 	}
 
 	ImGui::Render();
@@ -976,45 +940,6 @@ void GUI() {
 #pragma endregion
 
 #pragma region Objects
-	if (Dolly::dollyScene)
-	{
-		if (!Dolly::animationStarted)
-		{
-			s = "-> Go To Ilumination Scene <-";
-			if (ImGui::Button(s.c_str()))
-			{
-				Dolly::dollyScene = false;
-				ChangeScene(false);
-			}
-
-			s = "- Start Dolly Animation with cat -";
-		}
-		else s = "- Stop Dolly Animation -";
-
-		if (ImGui::Button(s.c_str()))
-		{
-			if (!Dolly::animationStarted)
-			{
-				Dolly::animationStarted = true;
-				Dolly::eDollyState = Dolly::State::START;
-
-				Dolly::objectSelected = 0;
-			}
-			else
-			{
-				Dolly::eDollyState = Dolly::State::END;
-			}
-		}
-	}
-	else {
-		s = "-> Go To Dolly Animation Scene <-";
-
-		if (ImGui::Button(s.c_str()))
-		{
-			Dolly::dollyScene = true;
-			ChangeScene(true);
-		}
-	}
 
 	//Informació modificable de cada objecte
 	for (int i = 0; i < objectVectors.size(); i++)
