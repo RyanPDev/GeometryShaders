@@ -7,6 +7,9 @@
 
 class Shader
 {
+private:
+	GLuint CompileShader(const char*, GLenum, const char*);
+	void LinkProgram(GLuint);
 public:
 	GLuint programID;
 	GLuint ObjShader[2];
@@ -16,8 +19,6 @@ public:
 	//Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath);
 	/*~Shader();*/
 
-	GLuint CompileShader(const char*, GLenum, const char*);
-	void LinkProgram(GLuint);
 	void Use();
 	void CleanUpShader();
 	void SetBool(const std::string&, bool) const;
