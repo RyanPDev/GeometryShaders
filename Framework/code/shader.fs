@@ -4,7 +4,7 @@
 	in vec3 FragPos;
 	in vec2 Uvs;
 	uniform sampler2D diffuseTexture;
-	uniform mat4 view
+	uniform mat4 view;
 	uniform vec3 lightPos;
 	uniform vec3 spotLightDir;
 	uniform vec3 lightColor;
