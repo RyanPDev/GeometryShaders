@@ -41,21 +41,7 @@ struct Light {
 	int attenuationActivated = 1;
 } light;
 
-//Namespace dels atributs necessaris per a fer l'animació del Dolly Effect
-namespace DollyEffect {
-	enum class State { START, BACKING, FORWADING, END, COUNT }eDollyState;
-
-	bool animationStarted = false;
-	int objectSelected = 0;
-	float width = 0;
-	float speed = 50;
-	float zoom = 0;
-	float ZDistance = 7.f;
-	bool dollyScene = false;
-	float initialDistance = 0, animationDistance = 40.f;
-}
-namespace Dolly = DollyEffect;
-
+enum class Scene { PHONG, TEXTURING, GEOMETRY_SHADERS }scene;
 ///////// fw decl
 namespace ImGui {
 	void Render();
@@ -96,7 +82,7 @@ void GLResize(int width, int height) {
 }
 
 void GLmousecb(MouseEvent ev) {
-	if (RV::prevMouse.waspressed && RV::prevMouse.button == ev.button && !Dolly::animationStarted) {
+	if (RV::prevMouse.waspressed && RV::prevMouse.button == ev.button) {
 		float diffx = ev.posx - RV::prevMouse.lastx;
 		float diffy = ev.posy - RV::prevMouse.lasty;
 		switch (ev.button) {
@@ -198,9 +184,11 @@ namespace Axis {
 namespace Cube {
 	GLuint cubeVao;
 	GLuint cubeVbo[3];
+	GLuint textureID;
 	Shader cubeShader;
 	glm::mat4 objMat = glm::mat4(1.f);
 
+	glm::vec3 position = glm::vec3(0,3,0), rotation = glm::vec3(0, 0, 0), scale = glm::vec3(4, 4, 4);
 	extern const float halfW = 0.5f;
 	int numVerts = 24 + 6; // 4 vertex/face * 6 faces + 6 PRIMITIVE RESTART
 
@@ -286,8 +274,15 @@ namespace Cube {
 		glDeleteVertexArrays(1, &cubeVao);
 		cubeShader.CleanUpShader();
 	}
-	void updateCube(const glm::mat4& transform) {
-		objMat = transform;
+
+	void updateCube()
+	{
+		glm::mat4 t = glm::translate(glm::mat4(), position);
+		glm::mat4 r1 = glm::rotate(glm::mat4(), rotation.x, glm::vec3(1, 0, 0));
+		glm::mat4 r2 = glm::rotate(glm::mat4(), rotation.y, glm::vec3(0, 1, 0));
+		glm::mat4 r3 = glm::rotate(glm::mat4(), rotation.z, glm::vec3(0, 0, 1));
+		glm::mat4 s = glm::scale(glm::mat4(), scale);
+		objMat = t * r1 * r2 * r3 * s;
 	}
 
 	void draw() {
@@ -297,11 +292,11 @@ namespace Cube {
 		glBindVertexArray(cubeVao);
 		glUseProgram(cubeShader.programID);
 
-		glm::mat4 t = glm::translate(glm::mat4(), glm::vec3(0.f, -20.f, 0.f));;
+		/*glm::mat4 t = glm::translate(glm::mat4(), glm::vec3(0.f, -20.f, 0.f));;
 		if (light.type != Light::EType::DIRECTIONAL)
 			t = glm::translate(glm::mat4(), light.position);
 		glm::mat4 s = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
-		objMat = t * s;
+		objMat = t * s;*/
 		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
@@ -336,7 +331,7 @@ public:
 	glm::vec3 dollyPos, dollyRot, dollyScale;
 	glm::vec3 objectColor;
 	glm::vec3 position, rotation, scale;
-
+	unsigned char* data;
 	int texWidth, texHeight, nrChannels;
 
 	LoadObject(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor = { 1.f, 0.5f, 0.31f }) :
@@ -344,7 +339,7 @@ public:
 	{
 		bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
 		stbi_set_flip_vertically_on_load(true);
-		unsigned char* data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
+		data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
 
 		name.erase(name.size() - 4, name.size());
 
@@ -363,7 +358,7 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
+		//stbi_image_free(data);
 
 		glGenBuffers(3, ObjVbo);
 
@@ -419,6 +414,7 @@ public:
 		shader.Use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureID);
+
 		glBindVertexArray(ObjVao);
 		shader.SetMat4("model", 1, GL_FALSE, glm::value_ptr(objMat));
 		shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
@@ -492,6 +488,9 @@ void GLinit(int width, int height) {
 
 	//Emmagatzema els objectes creats al vector
 	objectVectors.push_back(Neko);
+
+	scene = Scene::PHONG;
+
 }
 
 void GLcleanup() {
@@ -514,77 +513,41 @@ void GLrender(float dt) {
 
 	RV::_modelView = glm::mat4(1.f);
 
-	if (!Dolly::animationStarted) //--> Si l'animació no ha començat permet moure la càmera
-	{
-		RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
-		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
-		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
-	}
-	else
-	{
-		//Màquina d'estats per controlar l'animació del Dolly Effect
-		switch (Dolly::eDollyState)
-		{
-		case Dolly::State::START: //-->Comença l'animació, frame 0, s'inicialitza la informació.
-			Dolly::zoom = Dolly::ZDistance;
-			RV::_modelView = glm::translate(RV::_modelView, glm::vec3(objectVectors[0].position.x * -1, objectVectors[0].position.y * -1, objectVectors[0].position.z - Dolly::zoom));
-			RV::_modelView = glm::rotate(RV::_modelView, 0.f, glm::vec3(0.f, 0.f, 1.f));
-			RV::_modelView = glm::rotate(RV::_modelView, 0.f, glm::vec3(1.f, 1.f, 0.f));
-			Dolly::width = objectVectors[Dolly::objectSelected].CalculateWidth();
-			Dolly::initialDistance = objectVectors[Dolly::objectSelected].CameraObjectDistance();
-			Dolly::eDollyState = Dolly::State::BACKING;
-			break;
-		case Dolly::State::BACKING: //-->La càmera s'allunya
-			Dolly::zoom += Dolly::speed * 0.005f;
-			if (Dolly::zoom >= Dolly::animationDistance) { Dolly::eDollyState = Dolly::State::FORWADING; }
-			break;
-		case Dolly::State::FORWADING: //-->La càmera s'apropa
-			Dolly::zoom -= Dolly::speed * 0.005f;
-			if (Dolly::zoom <= Dolly::ZDistance) { Dolly::eDollyState = Dolly::State::BACKING; }
-			break;
-		case Dolly::State::END: //-->Acaba el recorregut de la iteració, ens assegurem que el FOV acaba igual que comença.
-			RV::FOV = glm::radians(90.f);
-			Dolly::animationStarted = false;
-			break;
-		default:
-			break;
-		}
-
-		//Fixem la càmera en un punt concret i modifiquem només l'eix de la z pel moviment.
-		RV::_modelView = glm::translate(RV::_modelView, glm::vec3(objectVectors[0].position.x * -1, objectVectors[0].position.y * -1, objectVectors[0].position.z - Dolly::zoom));
-		RV::_modelView = glm::rotate(RV::_modelView, 0.f, glm::vec3(0.f, 0.f, 1.f));
-		RV::_modelView = glm::rotate(RV::_modelView, 0.f, glm::vec3(1.f, 1.f, 0.f));
-
-		//Recalculem el FOV i l'apliquem a la perspectiva de la matriu de projecció
-		if (Dolly::eDollyState != Dolly::State::START)
-		{
-			if (Dolly::eDollyState != Dolly::State::END)
-				RV::FOV = objectVectors[Dolly::objectSelected].CalculateNewFov(Dolly::width);
-
-			RV::_projection = glm::perspective(RV::FOV, 1800.f / 960.f, RV::zNear, RV::zFar);
-		}
-	}
-
+	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
+	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
+	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 	RV::_MVP = RV::_projection * RV::_modelView;
 	Axis::draw();
-	Cube::draw();
 
-	//S'actualitza i es dibuixa a cada objecte del vector
-	for (int i = 0; i < objectVectors.size(); i++)
+	switch (scene)
 	{
-		//if (i == 0) // Solo lo va a hacer con el gato
-		//{
-		//	glEnable(GL_BLEND);
-		//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//}
-		objectVectors[i].updateObj();
-		objectVectors[i].drawObj();
-		//if (i == 0) // Solo lo va a hacer con el gato
-		//{
-		//	glDisable(GL_BLEND);
-		//}
+	case Scene::PHONG:
+		//S'actualitza i es dibuixa a cada objecte del vector
+		for (int i = 0; i < objectVectors.size(); i++)
+		{
+			if (i == 0) // Solo lo va a hacer con el gato
+			{
+				glEnable(GL_TEXTURE_2D);
+				/*glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
+			}
+			objectVectors[i].updateObj();
+			objectVectors[i].drawObj();
+			if (i == 0) // Solo lo va a hacer con el gato
+			{
+				//glDisable(GL_BLEND);
+				glDisable(GL_TEXTURE_2D);
+			}
+		}
+		break;
+	case Scene::TEXTURING:
+		Cube::updateCube();
+		Cube::draw();
+		break;
+	case Scene::GEOMETRY_SHADERS:
+		// To Do
+		break;
 	}
-
 	ImGui::Render();
 }
 
@@ -599,67 +562,83 @@ void GUI() {
 	/////////////////////////////////////////////////////TODO
 	// Do your GUI code here....
 
-#pragma region Lights
-	//Botons per canviar dels tipus d'il·luminació
-	if (ImGui::Button("Directional light")) { light.intensity = 1.f; light.position = glm::vec3{ 0.f, 1.f, 0.f }; light.type = Light::EType::DIRECTIONAL; }
-	if (ImGui::Button("Point light")) { light.intensity = 3.f; light.position = glm::vec3{ -4.f, 6.7f, 2.2f }; light.type = Light::EType::POINTLIGHT; }
-	if (ImGui::Button("Spot light")) { light.type = Light::EType::SPOTLIGHT; light.intensity = 3.f; light.position = glm::vec3{ 0.f, 2.9f, 13.5f }; light.spotLightDirection = glm::vec3{ 0.f, 0.f, -1.f }; light.spotLightAngle = 21.85f; }
+	if (ImGui::Button("Phong Scene")) {
+		scene = Scene::PHONG;
 
-	ImGui::ColorEdit3("Light color", (float*)&light.color); //--> Color de la llum
-	ImGui::DragFloat("Light intensity", (float*)&light.intensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum
-
-	//Switch per canviar la informació de la interfaç segons el tipus d'il·luminació que s'esta fent servir
-	switch (light.type)
+	} ImGui::SameLine();
+	if (ImGui::Button("Texturing Scene")) { scene = Scene::TEXTURING; } ImGui::SameLine();
+	if (ImGui::Button("Geometry Scene")) { scene = Scene::GEOMETRY_SHADERS; }
+	switch (scene)
 	{
-	case Light::EType::DIRECTIONAL:
-		ImGui::DragFloat3("Light Direction", (float*)&light.position, 0.005f, -1.f, 1.f);
-		break;
-	case Light::EType::POINTLIGHT:
-		ImGui::DragFloat3("Pointlight Position", (float*)&light.position, 0.1f, -50.f, 50.f);
-		break;
-	case Light::EType::SPOTLIGHT:
-		ImGui::DragFloat3("Spotlight Position", (float*)&light.position, 0.1f, -50.f, 50.f);
-		ImGui::DragFloat3("Spotlight Direction", (float*)&light.spotLightDirection, 0.005f, -1.f, 1.f);
-		ImGui::DragFloat("Spotlight angle", &light.spotLightAngle, 0.05f, 10.f, 50.f);
-		light.cutOff = glm::cos(glm::radians(light.spotLightAngle));
+	case Scene::PHONG:
+#pragma region Lights
+		//Botons per canviar dels tipus d'il·luminació
+		if (ImGui::Button("Directional light")) { light.intensity = 1.f; light.position = glm::vec3{ 0.f, 1.f, 0.f }; light.type = Light::EType::DIRECTIONAL; }
+		if (ImGui::Button("Point light")) { light.intensity = 3.f; light.position = glm::vec3{ -4.f, 6.7f, 2.2f }; light.type = Light::EType::POINTLIGHT; }
+		if (ImGui::Button("Spot light")) { light.type = Light::EType::SPOTLIGHT; light.intensity = 3.f; light.position = glm::vec3{ 0.f, 2.9f, 13.5f }; light.spotLightDirection = glm::vec3{ 0.f, 0.f, -1.f }; light.spotLightAngle = 21.85f; }
 
-		s = (light.attenuationActivated == 1) ? "Deactivate attenuation" : "Activate attenuation";
+		ImGui::ColorEdit3("Light color", (float*)&light.color); //--> Color de la llum
+		ImGui::DragFloat("Light intensity", (float*)&light.intensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum
 
-		if (ImGui::Button(s.c_str())) {
-			light.attenuationActivated *= -1;
+		//Switch per canviar la informació de la interfaç segons el tipus d'il·luminació que s'esta fent servir
+		switch (light.type)
+		{
+		case Light::EType::DIRECTIONAL:
+			ImGui::DragFloat3("Light Direction", (float*)&light.position, 0.005f, -1.f, 1.f);
+			break;
+		case Light::EType::POINTLIGHT:
+			ImGui::DragFloat3("Pointlight Position", (float*)&light.position, 0.1f, -50.f, 50.f);
+			break;
+		case Light::EType::SPOTLIGHT:
+			ImGui::DragFloat3("Spotlight Position", (float*)&light.position, 0.1f, -50.f, 50.f);
+			ImGui::DragFloat3("Spotlight Direction", (float*)&light.spotLightDirection, 0.005f, -1.f, 1.f);
+			ImGui::DragFloat("Spotlight angle", &light.spotLightAngle, 0.05f, 10.f, 50.f);
+			light.cutOff = glm::cos(glm::radians(light.spotLightAngle));
+
+			s = (light.attenuationActivated == 1) ? "Deactivate attenuation" : "Activate attenuation";
+
+			if (ImGui::Button(s.c_str())) {
+				light.attenuationActivated *= -1;
+			}
+			break;
 		}
-		break;
-	}
-	ImGui::ColorEdit3("Ambientcolor", (float*)&light.ambientColor); //--> Color de la llum ambient
-	ImGui::DragFloat("Ambient strength", &light.ambientIntensity, 0.005f, 0.f, 3.f); //--> Intensitat de la llum ambient
-	ImGui::DragFloat("Diffuse strength", &light.diffuseIntensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum difusa
-	ImGui::ColorEdit3("Specular color", (float*)&light.specularColor); //--> Color de la llum especular
-	ImGui::DragFloat("Specular strength", &light.specularIntensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum especular
-	ImGui::DragFloat("Shininess value ", &light.shininessValue, 0.5f, 1.f, 256.f); //--> Quantitat de la brillentor de la llum especular
+		ImGui::ColorEdit3("Ambientcolor", (float*)&light.ambientColor); //--> Color de la llum ambient
+		ImGui::DragFloat("Ambient strength", &light.ambientIntensity, 0.005f, 0.f, 3.f); //--> Intensitat de la llum ambient
+		ImGui::DragFloat("Diffuse strength", &light.diffuseIntensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum difusa
+		ImGui::ColorEdit3("Specular color", (float*)&light.specularColor); //--> Color de la llum especular
+		ImGui::DragFloat("Specular strength", &light.specularIntensity, 0.01f, 0.f, 10.f); //--> Intensitat de la llum especular
+		ImGui::DragFloat("Shininess value ", &light.shininessValue, 0.5f, 1.f, 256.f); //--> Quantitat de la brillentor de la llum especular
 #pragma endregion
 
 #pragma region Objects
 
 	//Informació modificable de cada objecte
-	for (int i = 0; i < objectVectors.size(); i++)
-	{
-		ImGui::PushID(i);
-		s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Color";
-		ImGui::ColorEdit3(s.c_str(), (float*)&objectVectors[i].objectColor);
+		for (int i = 0; i < objectVectors.size(); i++)
+		{
+			ImGui::PushID(i);
+			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Color";
+			ImGui::ColorEdit3(s.c_str(), (float*)&objectVectors[i].objectColor);
 
-		s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Position";
-		ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].position, 0.01f, -50.f, 50.f);
+			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Position";
+			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].position, 0.01f, -50.f, 50.f);
 
-		s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Rotation";
-		ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].rotation, 0.01f, 0.f, 360.f);
+			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Rotation";
+			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].rotation, 0.01f, 0.f, 360.f);
 
-		s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Scale";
-		ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].scale, 0.01f, 0.01f, 50.f);
+			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Scale";
+			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].scale, 0.01f, 0.01f, 50.f);
 
-		ImGui::PopID();
-	}
+			ImGui::PopID();
+		}
 
 #pragma endregion
+		break;
+	case Scene::TEXTURING:
+
+		break;
+	case Scene::GEOMETRY_SHADERS:
+		break;
+	}
 	/////////////////////////////////////////////////////////
 // .........................
 
