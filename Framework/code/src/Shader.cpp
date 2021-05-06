@@ -1,9 +1,9 @@
 #include "Shader.h"
 
-Shader::Shader() {}
+Shader::Shader() : ObjShader{ 0, 0, 0 }, programID(0) {}
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
-{	
+{
 	std::string vshader = ReadShaderFromFile(vertexPath);
 	std::string fshader = ReadShaderFromFile(fragmentPath);
 	const char* vShaderCode = vshader.c_str();
@@ -29,13 +29,16 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 	LinkProgram(programID);
 }
 
+//Codi de lectura de shaders externs a partir del codi proposat per https://learnopengl.com/Getting-started/Shaders //
 std::string Shader::ReadShaderFromFile(const char* shaderPath)
 {
 	// 1. retrieve the vertex/fragment source code from filePath
 	std::string shaderCode;
 	std::ifstream shaderFile;
+
 	// ensure ifstream objects can throw exceptions:
 	shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
 	try
 	{
 		// open files

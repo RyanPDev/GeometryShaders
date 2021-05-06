@@ -1,62 +1,20 @@
-#include <glm\gtc\matrix_transform.hpp>
-#include <cstdio>
-#include <cassert>
-#include <vector>
-
 #include <imgui\imgui.h>
 #include <imgui\imgui_impl_sdl_gl3.h>
 
 #include "GL_framework.h"
-#include "Shader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "Object.h"
 
-//Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
-extern bool loadOBJ(const char* path, std::vector < glm::vec3 >& out_vertices, std::vector < glm::vec2 >& out_uvs, std::vector < glm::vec3 >& out_normals);
-
-//Struct de la llum, guarda tots els atributs que tenen els diferents tipus de llums.
-struct Light {
-
-	enum class EType
-	{
-		DIRECTIONAL = 1, POINTLIGHT, SPOTLIGHT, COUNT
-	} type;
-
-	glm::vec3 position = { 0.f, 1.f, 0.f };
-	glm::vec3 color = { 1.f, 1.f, 1.f };
-	glm::vec3 ambientColor = { 1.f, 1.f, 1.f };
-	glm::vec3 specularColor = { 1.f, 1.f, 1.f };
-	glm::vec3 spotLightDirection = { 0.f,1.f,0.f };
-	float intensity = 1.f;
-	float ambientIntensity = 0.1f;
-	float diffuseIntensity = 1.f;
-	float specularIntensity = 1.f;
-	float shininessValue = 32.f;
-	float constant = 1.f;
-	float linear = 0.07f;
-	float quadratic = 0.017f;
-	float spotLightAngle = 20.f;
-	float cutOff = glm::cos(glm::radians(20.f));
-	int attenuationActivated = 1;
-} light;
-
-enum class Scene { PHONG, TEXTURING, GEOMETRY_SHADERS }scene;
-///////// fw decl
-namespace ImGui {
-	void Render();
-}
-namespace Axis {
-	void setupAxis();
-	void cleanupAxis();
-	void draw();
-}
-//////////////
+Light light;
+Scene scene;
+std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
+std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 
 namespace RenderVars {
 	float FOV = glm::radians(90.f);
-	const float zNear = 1.f;
-	const float zFar = 5000.f;
+	float zNear = 1.f;
+	float zFar = 5000.f;
 
 	glm::mat4 _projection;
 	glm::mat4 _modelView;
@@ -74,6 +32,17 @@ namespace RenderVars {
 	float rota[2] = { 0.f, 0.f };
 }
 namespace RV = RenderVars;
+
+///////// fw decl
+namespace ImGui {
+	void Render();
+}
+namespace Axis {
+	void setupAxis();
+	void cleanupAxis();
+	void draw();
+}
+//////////////
 
 void GLResize(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -188,7 +157,7 @@ namespace Cube {
 	unsigned char* data;
 	glm::vec3 position = glm::vec3(0, 3, 0), rotation = glm::vec3(0, 0, 0), scale = glm::vec3(4, 4, 4);
 	extern const float halfW = 0.5f;
-	
+
 	int texWidth, texHeight, nrChannels;
 	int numVerts = 24 + 6; // 4 vertex/face * 6 faces + 6 PRIMITIVE RESTART
 						   //   4---------7
@@ -249,7 +218,7 @@ namespace Cube {
 		norms[4], norms[4], norms[4], norms[4],
 		norms[5], norms[5], norms[5], norms[5]
 	};
-	
+
 	GLubyte cubeIdx[] = {
 		0, 1, 2, 3, UCHAR_MAX,
 		4, 5, 6, 7, UCHAR_MAX,
@@ -323,16 +292,16 @@ namespace Cube {
 	}
 
 	void draw() {
-		
+
 		float currentTime = ImGui::GetTime();
 		cubeShader.Use();
 		glEnable(GL_PRIMITIVE_RESTART);
-		
+
 		glBindVertexArray(cubeVao);
-		
+
 		cubeShader.SetMat4("objMat", 1, GL_FALSE, glm::value_ptr(objMat));
-		cubeShader.SetMat4("mv_Mat", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		cubeShader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		cubeShader.SetMat4("mv_Mat", 1, GL_FALSE, glm::value_ptr(RV::_modelView));
+		cubeShader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RV::_MVP));
 		cubeShader.SetFloat3("color", glm::vec3(1, 1, 1));
 
 		glActiveTexture(GL_TEXTURE0);
@@ -345,162 +314,6 @@ namespace Cube {
 		glDisable(GL_PRIMITIVE_RESTART);
 	}
 }
-
-//Classe "Objecte": Agrupa els atributs necessaris dels objectes que carguem i instanciem a l'escena.
-//També conté els seus shaders
-class LoadObject {
-	std::vector< glm::vec3 > vertices;
-	std::vector< glm::vec2 > uvs;
-	std::vector< glm::vec3 > normals;
-
-	Shader shader;
-
-	GLuint ObjVao;
-	GLuint textureID;
-	GLuint ObjVbo[3];
-
-	glm::mat4 objMat;
-
-public:
-	std::string name;
-	glm::vec3 initPos, initRot, initScale;
-	glm::vec3 dollyPos, dollyRot, dollyScale;
-	glm::vec3 objectColor;
-	glm::vec3 position, rotation, scale;
-	unsigned char* data;
-	int texWidth, texHeight, nrChannels;
-
-	LoadObject(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor = { 1.f, 0.5f, 0.31f }) :
-		name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
-	{
-		bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
-		stbi_set_flip_vertically_on_load(true);
-		data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
-
-		name.erase(name.size() - 4, name.size());
-
-		glGenVertexArrays(1, &ObjVao);
-		glBindVertexArray(ObjVao);
-		glGenTextures(1, &textureID); //TEXTURES
-		glBindTexture(GL_TEXTURE_2D, textureID); //TEXTURES
-
-		if (data)
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data); //TEXTURES
-			//glGenerateMipmap(GL_TEXTURE_2D);
-		}
-		else std::cout << "Failed to load texture" << std::endl;
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-		stbi_image_free(data);
-
-		glGenBuffers(3, ObjVbo);
-
-		glBindBuffer(GL_ARRAY_BUFFER, ObjVbo[0]);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-		glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, ObjVbo[1]);
-		glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
-		glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(1);
-
-		glBindBuffer(GL_ARRAY_BUFFER, ObjVbo[2]);
-		glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
-		glVertexAttribPointer((GLuint)2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(2);
-
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		shader = Shader("shaders/models/shader.vs", "shaders/models/shader.fs");
-
-		glBindAttribLocation(shader.programID, 0, "aPos");
-		glBindAttribLocation(shader.programID, 1, "aUvs");
-		glBindAttribLocation(shader.programID, 2, "aNormal");
-	}
-
-	void cleanupObj()
-	{
-		glDeleteBuffers(3, ObjVbo);
-		glDeleteVertexArrays(1, &ObjVao);
-		shader.CleanUpShader();
-
-		glDeleteTextures(1, &textureID);
-	}
-
-	//Actualitza objMat amb les matrius de transformació (translació, rotació i escala)
-	void updateObj()
-	{
-		glm::mat4 t = glm::translate(glm::mat4(), position);
-		glm::mat4 r1 = glm::rotate(glm::mat4(), rotation.x, glm::vec3(1, 0, 0));
-		glm::mat4 r2 = glm::rotate(glm::mat4(), rotation.y, glm::vec3(0, 1, 0));
-		glm::mat4 r3 = glm::rotate(glm::mat4(), rotation.z, glm::vec3(0, 0, 1));
-		glm::mat4 s = glm::scale(glm::mat4(), scale);
-		objMat = t * r1 * r2 * r3 * s;
-	}
-
-	void drawObj()
-	{
-		shader.Use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
-
-		glBindVertexArray(ObjVao);
-		shader.SetMat4("model", 1, GL_FALSE, glm::value_ptr(objMat));
-		shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		shader.SetMat4("projection", 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
-		shader.SetFloat3("objectColor", objectColor);
-		shader.SetFloat3("lightColor", light.color);
-		shader.SetFloat3("lightPos", light.position);
-		shader.SetFloat3("spotLightDir", light.spotLightDirection);
-		shader.SetFloat("lightIntensity", light.intensity);
-		shader.SetInt("attenuationActive", light.attenuationActivated);
-		shader.SetInt("lightType", (int)light.type);
-		shader.SetFloat("constant", light.constant);
-		shader.SetFloat("linear", light.linear);
-		shader.SetFloat("quadratic", light.quadratic);
-		shader.SetFloat("cutOff", light.cutOff);
-		shader.SetFloat("ambientStrength", light.ambientIntensity);
-		shader.SetFloat3("ambientColor", light.ambientColor);
-		shader.SetFloat("diffuseStrength", light.diffuseIntensity);
-		shader.SetFloat("specularStrength", light.specularIntensity);
-		shader.SetFloat3("specularColor", light.specularColor);
-		shader.SetFloat("shininessValue", light.shininessValue);
-
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-		glUseProgram(0);
-		glBindVertexArray(0);
-	}
-
-#pragma region Inverse Dolly Effect
-	//Calcula l'amplitud de l'escena a partir de la fórmula mencionada en el pdf adjuntat
-	float CalculateWidth()
-	{
-		return CameraObjectDistance() * 2 * glm::tan(RV::FOV / 2);
-	}
-
-	//Càlcul de la distància entre la posició de la "càmera" i l'objecte a enquadrar.
-	float CameraObjectDistance()
-	{
-		glm::vec3 viewPos = glm::vec3(inverse(RenderVars::_modelView)[3]);
-		return glm::distance(viewPos, position);
-	}
-
-	//Càlcul del FOV variable aïllant-lo de la mateixa fórmula mencionada anteriorment.
-	float CalculateNewFov(float _dollyEffectWidth)
-	{
-		float newFov = 2 * (glm::atan(_dollyEffectWidth / (2 * CameraObjectDistance())));
-		return newFov;
-	}
-#pragma endregion
-};
-
-std::vector<LoadObject> objectVectors; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
 
 void GLinit(int width, int height) {
 
@@ -519,13 +332,12 @@ void GLinit(int width, int height) {
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	LoadObject Neko("cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
+	Object Neko("cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
 
 	//Emmagatzema els objectes creats al vector
-	objectVectors.push_back(Neko);
+	objects.push_back(Neko);
 
 	scene = Scene::PHONG;
-
 }
 
 void GLcleanup() {
@@ -535,11 +347,11 @@ void GLcleanup() {
 	/////////////////////////////////////////////////////TODO
 	// Do your cleanup code here
 	//Cleanup per cada objecte dins del vector
-	for (int i = 0; i < objectVectors.size(); i++)
+	for (int i = 0; i < objects.size(); i++)
 	{
-		objectVectors[i].cleanupObj();
+		objects[i].CleanUp();
 	}
-	objectVectors.clear(); //--> Allibera memòria del vector d'objectes
+	objects.clear(); //--> Allibera memòria del vector d'objectes
 	/////////////////////////////////////////////////////////
 }
 
@@ -558,21 +370,10 @@ void GLrender(float dt) {
 	{
 	case Scene::PHONG:
 		//S'actualitza i es dibuixa a cada objecte del vector
-		for (int i = 0; i < objectVectors.size(); i++)
+		for (int i = 0; i < objects.size(); i++)
 		{
-			if (i == 0) // Solo lo va a hacer con el gato
-			{
-				//glEnable(GL_TEXTURE_2D);
-				/*glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
-			}
-			objectVectors[i].updateObj();
-			objectVectors[i].drawObj();
-			if (i == 0) // Solo lo va a hacer con el gato
-			{
-				//glDisable(GL_BLEND);
-				//glDisable(GL_TEXTURE_2D);
-			}
+			objects[i].Update();
+			objects[i].Draw(light);
 		}
 		break;
 	case Scene::TEXTURING:
@@ -585,8 +386,6 @@ void GLrender(float dt) {
 	}
 	ImGui::Render();
 }
-
-std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 
 void GUI() {
 	bool show = true;
@@ -648,20 +447,20 @@ void GUI() {
 #pragma region Objects
 
 	//Informació modificable de cada objecte
-		for (int i = 0; i < objectVectors.size(); i++)
+		for (int i = 0; i < objects.size(); i++)
 		{
 			ImGui::PushID(i);
-			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Color";
-			ImGui::ColorEdit3(s.c_str(), (float*)&objectVectors[i].objectColor);
+			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Color";
+			ImGui::ColorEdit3(s.c_str(), (float*)&objects[i].objectColor);
 
-			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Position";
-			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].position, 0.01f, -50.f, 50.f);
+			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Position";
+			ImGui::DragFloat3(s.c_str(), (float*)&objects[i].position, 0.01f, -50.f, 50.f);
 
-			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Rotation";
-			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].rotation, 0.01f, 0.f, 360.f);
+			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Rotation";
+			ImGui::DragFloat3(s.c_str(), (float*)&objects[i].rotation, 0.01f, 0.f, 360.f);
 
-			s = std::to_string(i + 1) + ": " + objectVectors[i].name + " Scale";
-			ImGui::DragFloat3(s.c_str(), (float*)&objectVectors[i].scale, 0.01f, 0.01f, 50.f);
+			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Scale";
+			ImGui::DragFloat3(s.c_str(), (float*)&objects[i].scale, 0.01f, 0.01f, 50.f);
 
 			ImGui::PopID();
 		}

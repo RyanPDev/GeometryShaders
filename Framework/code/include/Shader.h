@@ -1,9 +1,5 @@
 #pragma once
-#include <iostream>
-#include <fstream>
-#include <GL\glew.h>
-#include <sstream>
-#include <glm\gtc\type_ptr.hpp>
+#include "Utils.h"
 
 class Shader
 {
@@ -14,10 +10,10 @@ private:
 	void LinkProgram(GLuint);
 	std::string ReadShaderFromFile(const char*);
 public:
-	GLuint programID;
-
 	Shader();
 	Shader(const char*, const char*, const char* = nullptr);
+
+	GLuint programID;
 
 	void Use();
 	void CleanUpShader();
