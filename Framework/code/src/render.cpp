@@ -108,13 +108,11 @@ void GLmousecb(MouseEvent ev) {
 	RV::prevMouse.lasty = ev.posy;
 }
 
-
 //////////////////////////////////////////////// AXIS
 namespace Axis {
 	Shader axisShader;
 	GLuint AxisVao;
 	GLuint AxisVbo[3];
-
 
 	float AxisVerts[] = {
 		0.0, 0.0, 0.0,

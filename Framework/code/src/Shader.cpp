@@ -1,5 +1,7 @@
 #include "Shader.h"
 
+Shader::Shader() {}
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
 {	
 	std::string vshader = ReadShaderFromFile(vertexPath);
