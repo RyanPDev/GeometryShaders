@@ -1,58 +1,60 @@
 #include "Shader.h"
 
-Shader::Shader() {}
-//Shader::~Shader() {}
+Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+{	
+	std::string vshader = ReadShaderFromFile(vertexPath);
+	std::string fshader = ReadShaderFromFile(fragmentPath);
+	const char* vShaderCode = vshader.c_str();
+	const char* fShaderCode = fshader.c_str();
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath)
+	// 2. compile shaders
+	ObjShader[0] = CompileShaderFromFile(vShaderCode, GL_VERTEX_SHADER, "ObjVert"); // Vertex Shader
+	ObjShader[1] = CompileShaderFromFile(fShaderCode, GL_FRAGMENT_SHADER, "ObjFrag"); // Fragment Shader
+
+	// Shader Program
+	programID = glCreateProgram();
+	glAttachShader(programID, ObjShader[0]);
+	glAttachShader(programID, ObjShader[1]);
+
+	if (geometryPath != nullptr) // Geometry Shader
+	{
+		std::string gshader = ReadShaderFromFile(geometryPath);
+		const char* gShaderCode = gshader.c_str();
+		ObjShader[2] = CompileShaderFromFile(gShaderCode, GL_GEOMETRY_SHADER, "ObjGeom");
+		glAttachShader(programID, ObjShader[2]);
+	}
+
+	LinkProgram(programID);
+}
+
+std::string Shader::ReadShaderFromFile(const char* shaderPath)
 {
 	// 1. retrieve the vertex/fragment source code from filePath
-	std::string vertexCode;
-	std::string fragmentCode;
-	std::ifstream vShaderFile;
-	std::ifstream fShaderFile;
+	std::string shaderCode;
+	std::ifstream shaderFile;
 	// ensure ifstream objects can throw exceptions:
-	vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-	fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	try
 	{
 		// open files
-		vShaderFile.open(vertexPath);
-		fShaderFile.open(fragmentPath);
-		std::stringstream vShaderStream, fShaderStream;
+		shaderFile.open(shaderPath);
+		std::stringstream shaderStream;
 		// read file's buffer contents into streams
-		vShaderStream << vShaderFile.rdbuf();
-		fShaderStream << fShaderFile.rdbuf();
+		shaderStream << shaderFile.rdbuf();
 		// close file handlers
-		vShaderFile.close();
-		fShaderFile.close();
+		shaderFile.close();
 		// convert stream into string
-		vertexCode = vShaderStream.str();
-		fragmentCode = fShaderStream.str();
+		shaderCode = shaderStream.str();
 	}
 	catch (std::ifstream::failure e)
 	{
 		std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
 	}
 
-	const char* vShaderCode = vertexCode.c_str();
-	const char* fShaderCode = fragmentCode.c_str();
-
-	// 2. compile shaders
-	ObjShader[0] = CompileShader(vShaderCode, GL_VERTEX_SHADER, "ObjVert");
-	ObjShader[1] = CompileShader(fShaderCode, GL_FRAGMENT_SHADER, "ObjFrag");
-
-	// Shader Program
-	programID = glCreateProgram();
-	glAttachShader(programID, ObjShader[0]);
-	glAttachShader(programID, ObjShader[1]);
-	LinkProgram(programID);
+	return shaderCode;
 }
 
-//Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
-//{
-//}
-
-GLuint Shader::CompileShader(const char* shaderStr, GLenum shaderType, const char* name = "")
+GLuint Shader::CompileShaderFromFile(const char* shaderStr, GLenum shaderType, const char* name)
 {
 	GLuint shader = glCreateShader(shaderType);
 	glShaderSource(shader, 1, &shaderStr, NULL);

@@ -8,16 +8,16 @@
 class Shader
 {
 private:
-	GLuint CompileShader(const char*, GLenum, const char*);
+	GLuint ObjShader[3];
+
+	GLuint CompileShaderFromFile(const char*, GLenum, const char* = "");
 	void LinkProgram(GLuint);
+	std::string ReadShaderFromFile(const char*);
 public:
 	GLuint programID;
-	GLuint ObjShader[2];
 
 	Shader();
-	Shader(const char* vertexPath, const char* fragmentPath);
-	//Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath);
-	/*~Shader();*/
+	Shader(const char*, const char*, const char* = nullptr);
 
 	void Use();
 	void CleanUpShader();
