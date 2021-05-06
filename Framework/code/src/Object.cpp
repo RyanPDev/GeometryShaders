@@ -49,9 +49,9 @@ Object::Object(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm:
 
 	shader = Shader("shaders/models/shader.vs", "shaders/models/shader.fs");
 
-	glBindAttribLocation(shader.programID, 0, "aPos");
-	glBindAttribLocation(shader.programID, 1, "aUvs");
-	glBindAttribLocation(shader.programID, 2, "aNormal");
+	glBindAttribLocation(shader.GetID(), 0, "aPos");
+	glBindAttribLocation(shader.GetID(), 1, "aUvs");
+	glBindAttribLocation(shader.GetID(), 2, "aNormal");
 }
 
 void Object::Update()
