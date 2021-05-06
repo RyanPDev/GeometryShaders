@@ -171,8 +171,8 @@ namespace Axis {
 	}
 	void draw() {
 		glBindVertexArray(AxisVao);
-		glUseProgram(axisShader.programID);
-		glUniformMatrix4fv(glGetUniformLocation(axisShader.programID, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RV::_MVP));
+		axisShader.Use();
+		axisShader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RV::_MVP));
 		glDrawElements(GL_LINES, 6, GL_UNSIGNED_BYTE, 0);
 
 		glUseProgram(0);
@@ -183,15 +183,16 @@ namespace Axis {
 ////////////////////////////////////////////////// CUBE
 namespace Cube {
 	GLuint cubeVao;
-	GLuint cubeVbo[3];
+	GLuint cubeVbo[4];
 	GLuint textureID;
 	Shader cubeShader;
 	glm::mat4 objMat = glm::mat4(1.f);
-
-	glm::vec3 position = glm::vec3(0,3,0), rotation = glm::vec3(0, 0, 0), scale = glm::vec3(4, 4, 4);
+	unsigned char* data;
+	glm::vec3 position = glm::vec3(0, 3, 0), rotation = glm::vec3(0, 0, 0), scale = glm::vec3(4, 4, 4);
 	extern const float halfW = 0.5f;
+	
+	int texWidth, texHeight, nrChannels;
 	int numVerts = 24 + 6; // 4 vertex/face * 6 faces + 6 PRIMITIVE RESTART
-
 						   //   4---------7
 						   //  /|        /|
 						   // / |       / |
@@ -219,6 +220,13 @@ namespace Cube {
 		glm::vec3(0.f,  0.f,  1.f)
 	};
 
+	glm::vec2 texCoords[] = {
+		glm::vec2(0.f, 0.f), // Abajo izquierda
+		glm::vec2(0.f, 1.f), // Arriba izquierda
+		glm::vec2(1.f, 0.f), // Abajo derecha
+		glm::vec2(1.f, 1.f)  // Arriba derecha
+	};
+
 	glm::vec3 cubeVerts[] = {
 		verts[1], verts[0], verts[2], verts[3],
 		verts[5], verts[6], verts[4], verts[7],
@@ -226,6 +234,14 @@ namespace Cube {
 		verts[2], verts[3], verts[6], verts[7],
 		verts[0], verts[4], verts[3], verts[7],
 		verts[1], verts[2], verts[5], verts[6]
+	};
+	glm::vec2 cubeTexCoords[] = {
+		texCoords[1], texCoords[0], texCoords[3], texCoords[2],
+		texCoords[0], texCoords[2], texCoords[1], texCoords[3],
+		texCoords[2], texCoords[3], texCoords[0], texCoords[1],
+		texCoords[0], texCoords[2], texCoords[1], texCoords[3],
+		texCoords[2], texCoords[3], texCoords[0], texCoords[1],
+		texCoords[0], texCoords[2], texCoords[1], texCoords[3]
 	};
 	glm::vec3 cubeNorms[] = {
 		norms[0], norms[0], norms[0], norms[0],
@@ -235,6 +251,7 @@ namespace Cube {
 		norms[4], norms[4], norms[4], norms[4],
 		norms[5], norms[5], norms[5], norms[5]
 	};
+	
 	GLubyte cubeIdx[] = {
 		0, 1, 2, 3, UCHAR_MAX,
 		4, 5, 6, 7, UCHAR_MAX,
@@ -245,9 +262,25 @@ namespace Cube {
 	};
 
 	void setupCube() {
+
+		stbi_set_flip_vertically_on_load(true);
+		data = stbi_load("checker_box.jpg", &texWidth, &texHeight, &nrChannels, 0);
+
+
 		glGenVertexArrays(1, &cubeVao);
 		glBindVertexArray(cubeVao);
-		glGenBuffers(3, cubeVbo);
+		glGenTextures(1, &textureID); //TEXTURES
+		glBindTexture(GL_TEXTURE_2D, textureID); //TEXTURES
+
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data); //TEXTURES
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else std::cout << "Failed to load texture" << std::endl;
+
+		stbi_image_free(data);
+		glGenBuffers(4, cubeVbo);
 
 		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
@@ -259,8 +292,13 @@ namespace Cube {
 		glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(1);
 
+		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo[2]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(cubeTexCoords), cubeTexCoords, GL_STATIC_DRAW);
+		glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(2);
+
 		glPrimitiveRestartIndex(UCHAR_MAX);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeVbo[2]);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeVbo[3]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIdx), cubeIdx, GL_STATIC_DRAW);
 
 		glBindVertexArray(0);
@@ -270,9 +308,10 @@ namespace Cube {
 		cubeShader = Shader("shaders/cube/cubeShader.vs", "shaders/cube/cubeShader.fs");
 	}
 	void cleanupCube() {
-		glDeleteBuffers(3, cubeVbo);
+		glDeleteBuffers(4, cubeVbo);
 		glDeleteVertexArrays(1, &cubeVao);
 		cubeShader.CleanUpShader();
+		glDeleteTextures(1, &textureID);
 	}
 
 	void updateCube()
@@ -286,21 +325,20 @@ namespace Cube {
 	}
 
 	void draw() {
+		
 		float currentTime = ImGui::GetTime();
-
+		cubeShader.Use();
 		glEnable(GL_PRIMITIVE_RESTART);
+		
 		glBindVertexArray(cubeVao);
-		glUseProgram(cubeShader.programID);
+		
+		cubeShader.SetMat4("objMat", 1, GL_FALSE, glm::value_ptr(objMat));
+		cubeShader.SetMat4("mv_Mat", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		cubeShader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		cubeShader.SetFloat3("color", glm::vec3(1, 1, 1));
 
-		/*glm::mat4 t = glm::translate(glm::mat4(), glm::vec3(0.f, -20.f, 0.f));;
-		if (light.type != Light::EType::DIRECTIONAL)
-			t = glm::translate(glm::mat4(), light.position);
-		glm::mat4 s = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
-		objMat = t * s;*/
-		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		glUniformMatrix4fv(glGetUniformLocation(cubeShader.programID, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-		glUniform4f(glGetUniformLocation(cubeShader.programID, "color"), 1.f, 1.f, 1.f, 0.f);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
 		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
 
 		glUseProgram(0);
@@ -344,8 +382,8 @@ public:
 		name.erase(name.size() - 4, name.size());
 
 		glGenVertexArrays(1, &ObjVao);
-		glGenTextures(1, &textureID); //TEXTURES
 		glBindVertexArray(ObjVao);
+		glGenTextures(1, &textureID); //TEXTURES
 		glBindTexture(GL_TEXTURE_2D, textureID); //TEXTURES
 
 		if (data)
@@ -358,7 +396,7 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-		//stbi_image_free(data);
+		stbi_image_free(data);
 
 		glGenBuffers(3, ObjVbo);
 
@@ -386,7 +424,6 @@ public:
 		glBindAttribLocation(shader.programID, 0, "aPos");
 		glBindAttribLocation(shader.programID, 1, "aUvs");
 		glBindAttribLocation(shader.programID, 2, "aNormal");
-		updateObj();
 	}
 
 	void cleanupObj()
@@ -527,7 +564,7 @@ void GLrender(float dt) {
 		{
 			if (i == 0) // Solo lo va a hacer con el gato
 			{
-				glEnable(GL_TEXTURE_2D);
+				//glEnable(GL_TEXTURE_2D);
 				/*glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
 			}
@@ -536,7 +573,7 @@ void GLrender(float dt) {
 			if (i == 0) // Solo lo va a hacer con el gato
 			{
 				//glDisable(GL_BLEND);
-				glDisable(GL_TEXTURE_2D);
+				//glDisable(GL_TEXTURE_2D);
 			}
 		}
 		break;
