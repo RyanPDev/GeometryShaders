@@ -5,10 +5,12 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "Object.h"
+#include "Billboard.h"
 
 Light light;
 Scene scene;
 std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
+std::vector<Billboard> billboards;
 std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 
 namespace RenderVars {
@@ -337,6 +339,10 @@ void GLinit(int width, int height) {
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
 
+	//Crea i emmagatzema les billboards
+	Billboard billboard(glm::vec3(0, 0, 5));
+	billboards.push_back(billboard);
+
 	scene = Scene::PHONG;
 }
 
@@ -352,6 +358,7 @@ void GLcleanup() {
 		objects[i].CleanUp();
 	}
 	objects.clear(); //--> Allibera memòria del vector d'objectes
+
 	/////////////////////////////////////////////////////////
 }
 
@@ -382,6 +389,11 @@ void GLrender(float dt) {
 		break;
 	case Scene::GEOMETRY_SHADERS:
 		// To Do
+		for (int i = 0; i < billboards.size(); i++)
+		{
+			//billboards[i].Update();
+			billboards[i].Draw();
+		}
 		break;
 	}
 	ImGui::Render();
@@ -471,6 +483,7 @@ void GUI() {
 
 		break;
 	case Scene::GEOMETRY_SHADERS:
+
 		break;
 	}
 	/////////////////////////////////////////////////////////

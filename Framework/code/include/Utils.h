@@ -41,4 +41,5 @@ enum class Scene { PHONG, TEXTURING, GEOMETRY_SHADERS };
 namespace RenderVars {
 	extern glm::mat4 _projection;
 	extern glm::mat4 _modelView;
+	extern glm::mat4 _MVP;
 }
