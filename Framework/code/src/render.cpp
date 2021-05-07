@@ -13,6 +13,7 @@ std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'ins
 std::vector<Billboard> billboards;
 std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 
+
 namespace RenderVars {
 	float FOV = glm::radians(90.f);
 	float zNear = 1.f;
@@ -231,9 +232,7 @@ namespace Cube {
 	};
 
 	void setupCube() {
-
-		stbi_set_flip_vertically_on_load(true);
-		data = stbi_load("checker_box.jpg", &texWidth, &texHeight, &nrChannels, 0);
+		data = stbi_load("materials/checker_box.jpg", &texWidth, &texHeight, &nrChannels, 0);
 
 
 		glGenVertexArrays(1, &cubeVao);
@@ -319,6 +318,8 @@ namespace Cube {
 
 void GLinit(int width, int height) {
 
+	stbi_set_flip_vertically_on_load(true);
+
 	glViewport(0, 0, width, height);
 	glClearColor(0.2f, 0.2f, 0.2f, 1.f);
 	glClearDepth(1.f);
@@ -334,14 +335,22 @@ void GLinit(int width, int height) {
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	Object Neko("cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
+	Object Neko("obj/cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
 
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
 
 	//Crea i emmagatzema les billboards
-	Billboard billboard(glm::vec3(0, 0, 5));
-	billboards.push_back(billboard);
+	int texWidth, texHeight, nrChannels;
+	unsigned char* data = stbi_load("materials/tree_texture.png", &texWidth, &texHeight, &nrChannels, 0);
+
+	for (int i = 0; i < 50; i++)
+	{
+		Billboard billboard(glm::vec3((rand() % 50) - 25, 0, (rand() % 50) - 25), data, texWidth, texHeight);
+		billboards.push_back(billboard);
+	}
+	
+	stbi_image_free(data);
 
 	scene = Scene::PHONG;
 }
@@ -391,7 +400,6 @@ void GLrender(float dt) {
 		// To Do
 		for (int i = 0; i < billboards.size(); i++)
 		{
-			//billboards[i].Update();
 			billboards[i].Draw();
 		}
 		break;

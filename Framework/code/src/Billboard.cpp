@@ -1,23 +1,24 @@
 #include "Billboard.h"
 
-Billboard::Billboard(glm::vec3 _vertexPos) : vertexPos(_vertexPos)
+Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int height) : vertexPos(_vertexPos)
 {
-	stbi_set_flip_vertically_on_load(true);
-	data = stbi_load("cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
+	//data = stbi_load("materials/tree_texture.png", &texWidth, &texHeight, &nrChannels, 0);
 
 	glGenVertexArrays(1, &BillboardVao);
 	glBindVertexArray(BillboardVao);
 	glGenTextures(1, &textureID); //TEXTURES
 	glBindTexture(GL_TEXTURE_2D, textureID); //TEXTURES
 
-	if (data)
+	if (_data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data); //TEXTURES
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _data); //TEXTURES
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else std::cout << "Failed to load texture" << std::endl;
 
-	stbi_image_free(data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 
 	glGenBuffers(1, BillboardVbo);
 
@@ -36,13 +37,22 @@ Billboard::Billboard(glm::vec3 _vertexPos) : vertexPos(_vertexPos)
 void Billboard::Draw()
 {
 	shader.Use();
-	/*glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureID);*/
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureID);
 	glBindVertexArray(BillboardVao);
 
-	shader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-
-	glDrawArrays(GL_POINTS, 0, 4);
+	shader.SetMat4("mvp", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+	shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+	glDrawArrays(GL_POINTS, 0, 1);
 	glUseProgram(0);
 	glBindVertexArray(0);
+}
+
+void Billboard::CleanUp()
+{
+	glDeleteBuffers(1, BillboardVbo);
+	glDeleteVertexArrays(1, &BillboardVao);
+	shader.CleanUpShader();
+
+	glDeleteTextures(1, &textureID);
 }
