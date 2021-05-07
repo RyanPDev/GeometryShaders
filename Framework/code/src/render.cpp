@@ -344,7 +344,7 @@ void GLinit(int width, int height) {
 	int texWidth, texHeight, nrChannels;
 	unsigned char* data = stbi_load("materials/tree_texture.png", &texWidth, &texHeight, &nrChannels, 0);
 
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < 25; i++)
 	{
 		Billboard billboard(glm::vec3((rand() % 50) - 25, 0, (rand() % 50) - 25), data, texWidth, texHeight);
 		billboards.push_back(billboard);
