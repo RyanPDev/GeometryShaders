@@ -24,7 +24,7 @@ private:
 	Shader shader;
 
 public:
-	Object(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor = { 1.f, 0.5f, 0.31f });
+	Object(std::string, const char*, const char*, const char* = nullptr, glm::vec3, glm::vec3, glm::vec3, glm::vec3 = { 1.f, 0.5f, 0.31f });
 
 	glm::vec3 objectColor;
 	glm::vec3 position, rotation, scale;

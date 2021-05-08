@@ -3,7 +3,7 @@
 //Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
 extern bool loadOBJ(const char* path, std::vector < glm::vec3 >& out_vertices, std::vector < glm::vec2 >& out_uvs, std::vector < glm::vec3 >& out_normals);
 
-Object::Object(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor) :
+Object::Object(std::string _path, const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor) :
 	name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 {
 	bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
@@ -46,7 +46,7 @@ Object::Object(std::string _path, glm::vec3 _startPos, glm::vec3 _startRot, glm:
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	shader = Shader("shaders/models/shader.vs", "shaders/models/shader.fs");
+	shader = Shader(vertexPath.c_str(), fragmentPath.c_str());
 
 	glBindAttribLocation(shader.GetID(), 0, "aPos");
 	glBindAttribLocation(shader.GetID(), 1, "aUvs");

@@ -2,8 +2,6 @@
 
 Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int height) : vertexPos(_vertexPos)
 {
-	//data = stbi_load("materials/tree_texture.png", &texWidth, &texHeight, &nrChannels, 0);
-
 	glGenVertexArrays(1, &BillboardVao);
 	glBindVertexArray(BillboardVao);
 	glGenTextures(1, &textureID); //TEXTURES

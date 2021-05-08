@@ -7,35 +7,34 @@
 	uniform mat4 view;
 	vec3 viewPos;
 	vec3 viewDir;
+	uniform float time;
 
-	void main() {
+	vec3 GetNormal()
+	{
+		vec3 a = vec3(gl_in[0].gl_Position) - vec3(gl_in[1].gl_Position);
+		vec3 b = vec3(gl_in[2].gl_Position) - vec3(gl_in[1].gl_Position);
+		return normalize(cross(a, b));
+	}
 
-	vec3 pos = gl_in[0].gl_Position.xyz;
-	viewPos = vec3(inverse(view)[3]);
-	viewDir = normalize(viewPos - pos);
-	vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 right = normalize(cross(viewDir, up));
+	vec4 explode(vec4 position, vec3 normal)
+	{
+		float magnitude = 2.0;
+		vec3 direction = normal * ((sin(time) + 1.0) / 2.0) * magnitude; 
+		return position + vec4(direction, 0.0);
+	}
 
-	pos -= (right * width/2);
-	gl_Position = mvp * vec4(pos, 1.0);
-	texCoord = vec2( 0.0, 0.0 );
-	EmitVertex();
+	void main() {	
 
-	pos.y += height;
-	gl_Position = mvp * vec4(pos, 1.0);
-	texCoord = vec2( 0.0, 1.0 );
-	EmitVertex();
+	vec3 normal = GetNormal();
 
-	pos += (right * width);
-	pos.y -= height;
-	gl_Position = mvp * vec4(pos, 1.0);
-	texCoord = vec2( 1.0, 0.0 );
-	EmitVertex();
-
-	pos.y += height;
-	gl_Position = mvp * vec4(pos, 1.0);
-	texCoord = vec2( 1.0, 1.0 );
-	EmitVertex();
-
-	EndPrimitive();
+    gl_Position = explode(gl_in[0].gl_Position, normal);
+    TexCoords = gs_in[0].texCoords;
+    EmitVertex();
+    gl_Position = explode(gl_in[1].gl_Position, normal);
+    TexCoords = gs_in[1].texCoords;
+    EmitVertex();
+    gl_Position = explode(gl_in[2].gl_Position, normal);
+    TexCoords = gs_in[2].texCoords;
+    EmitVertex();
+    EndPrimitive();
 }

@@ -335,7 +335,7 @@ void GLinit(int width, int height) {
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	Object Neko("obj/cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
+	Object Neko("obj/cat.obj", "shaders/models/shader.vs", "shaders/models/shader.fs", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
 
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
