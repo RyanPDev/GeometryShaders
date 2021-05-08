@@ -1,13 +1,18 @@
 #version 330
-	layout (points) in;
-	layout (triangle_strip, max_vertices = 4) out;
+	layout (triangles) in;
+	layout (triangle_strip, max_vertices = 3) out;
 	float width = 5, height = 6;
-	out vec2 texCoord;
 	uniform mat4 mvp;
 	uniform mat4 view;
 	vec3 viewPos;
 	vec3 viewDir;
 	uniform float time;
+
+	in VS_OUT {
+    vec2 texCoords;
+} gs_in[];
+
+out vec2 TexCoords; 
 
 	vec3 GetNormal()
 	{
@@ -18,7 +23,7 @@
 
 	vec4 explode(vec4 position, vec3 normal)
 	{
-		float magnitude = 2.0;
+		float magnitude = 10.0;
 		vec3 direction = normal * ((sin(time) + 1.0) / 2.0) * magnitude; 
 		return position + vec4(direction, 0.0);
 	}

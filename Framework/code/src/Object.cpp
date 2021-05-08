@@ -3,10 +3,10 @@
 //Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
 extern bool loadOBJ(const char* path, std::vector < glm::vec3 >& out_vertices, std::vector < glm::vec2 >& out_uvs, std::vector < glm::vec3 >& out_normals);
 
-Object::Object(std::string _path, const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor) :
+Object::Object(const char* _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, const char* vertexPath, const char* fragmentPath, const char* geometryPath, glm::vec3 _startColor) :
 	name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 {
-	bool res = loadOBJ(_path.c_str(), vertices, uvs, normals);
+	bool res = loadOBJ(_path, vertices, uvs, normals);
 	data = stbi_load("materials/cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
 
 	name.erase(name.size() - 4, name.size());
@@ -46,12 +46,13 @@ Object::Object(std::string _path, const char* vertexPath, const char* fragmentPa
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	shader = Shader(vertexPath.c_str(), fragmentPath.c_str());
+	geometryPath == nullptr ? shader = Shader(vertexPath, fragmentPath) : shader = Shader(vertexPath, fragmentPath, geometryPath);
 
 	glBindAttribLocation(shader.GetID(), 0, "aPos");
 	glBindAttribLocation(shader.GetID(), 1, "aUvs");
 	glBindAttribLocation(shader.GetID(), 2, "aNormal");
 }
+
 
 void Object::Update()
 {
@@ -65,6 +66,8 @@ void Object::Update()
 
 void Object::Draw(Light light)
 {
+	float currentTime = ImGui::GetTime();
+
 	shader.Use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
@@ -90,6 +93,8 @@ void Object::Draw(Light light)
 	shader.SetFloat("specularStrength", light.specularIntensity);
 	shader.SetFloat3("specularColor", light.specularColor);
 	shader.SetFloat("shininessValue", light.shininessValue);
+
+	shader.SetFloat("time", currentTime);
 
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glUseProgram(0);

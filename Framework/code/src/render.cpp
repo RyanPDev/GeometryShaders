@@ -1,6 +1,3 @@
-#include <imgui\imgui.h>
-#include <imgui\imgui_impl_sdl_gl3.h>
-
 #include "GL_framework.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -12,6 +9,7 @@ Scene scene;
 std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
 std::vector<Billboard> billboards;
 std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
+bool explosionAnim = false;
 
 
 namespace RenderVars {
@@ -293,8 +291,6 @@ namespace Cube {
 	}
 
 	void draw() {
-
-		float currentTime = ImGui::GetTime();
 		cubeShader.Use();
 		glEnable(GL_PRIMITIVE_RESTART);
 
@@ -335,7 +331,7 @@ void GLinit(int width, int height) {
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	Object Neko("obj/cat.obj", "shaders/models/shader.vs", "shaders/models/shader.fs", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1));
+	Object Neko("obj/cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), "shaders/models/shader.vs", "shaders/models/shader.fs", "shaders/explosion/exshader.gs");
 
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
@@ -402,6 +398,9 @@ void GLrender(float dt) {
 		{
 			billboards[i].Draw();
 		}
+		objects[0].Draw(light);
+		break;
+	default:
 		break;
 	}
 	ImGui::Render();
@@ -416,10 +415,8 @@ void GUI() {
 	/////////////////////////////////////////////////////TODO
 	// Do your GUI code here....
 
-	if (ImGui::Button("Phong Scene")) {
-		scene = Scene::PHONG;
-
-	} ImGui::SameLine();
+	if (ImGui::Button("Phong Scene")) scene = Scene::PHONG;
+	ImGui::SameLine();
 	if (ImGui::Button("Texturing Scene")) { scene = Scene::TEXTURING; } ImGui::SameLine();
 	if (ImGui::Button("Geometry Scene")) { scene = Scene::GEOMETRY_SHADERS; }
 	switch (scene)
@@ -487,11 +484,12 @@ void GUI() {
 
 #pragma endregion
 		break;
-	case Scene::TEXTURING:
-
-		break;
+	/*case Scene::TEXTURING:
+		break;*/
 	case Scene::GEOMETRY_SHADERS:
-
+		if (ImGui::Button("Start explosion animation")) explosionAnim = true;
+		break;
+	default:
 		break;
 	}
 	/////////////////////////////////////////////////////////
