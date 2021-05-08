@@ -1,18 +1,10 @@
 #version 330
 	layout (triangles) in;
 	layout (triangle_strip, max_vertices = 3) out;
-	float width = 5, height = 6;
-	uniform mat4 mvp;
-	uniform mat4 view;
-	vec3 viewPos;
-	vec3 viewDir;
+
 	uniform float time;
-
-	in VS_OUT {
-    vec2 texCoords;
-} gs_in[];
-
-out vec2 TexCoords; 
+    in vec2 texCoords[];
+	out vec2 TexCoords; 
 
 	vec3 GetNormal()
 	{
@@ -32,14 +24,11 @@ out vec2 TexCoords;
 
 	vec3 normal = GetNormal();
 
-    gl_Position = explode(gl_in[0].gl_Position, normal);
-    TexCoords = gs_in[0].texCoords;
-    EmitVertex();
-    gl_Position = explode(gl_in[1].gl_Position, normal);
-    TexCoords = gs_in[1].texCoords;
-    EmitVertex();
-    gl_Position = explode(gl_in[2].gl_Position, normal);
-    TexCoords = gs_in[2].texCoords;
-    EmitVertex();
+	for (int i = 0; i < 3; i++)
+	{
+		gl_Position = explode(gl_in[i].gl_Position, normal);
+		TexCoords = texCoords[i];
+		EmitVertex();
+	}
     EndPrimitive();
 }
