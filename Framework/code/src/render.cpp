@@ -11,7 +11,10 @@ std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'ins
 std::vector<Billboard> billboards;
 std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 bool explosionAnim = false;
-
+float currentTime = 0;
+float auxTime = 0;
+float magnitude = 2;
+bool subDivide = false;
 
 namespace RenderVars {
 	float FOV = glm::radians(90.f);
@@ -333,7 +336,7 @@ void GLinit(int width, int height) {
 
 	//Crida al constructor de la classe amb els diferents objectes
 	Object Neko(catObj, glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), glm::vec3(1, 1, 1), modelVS, modelFS, nullptr, catTexture);
-	Object explosionNeko(catObj, glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), glm::vec3(1, 1, 1), explosionVS, explosionFS, explosionGS, catTexture);
+	Object explosionNeko(catObj, glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0, 4.71f, 0), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec3(1, 1, 1), explosionVS, explosionFS, explosionGS, catTexture);
 
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
@@ -341,7 +344,7 @@ void GLinit(int width, int height) {
 
 	int texWidth[3], texHeight[3], nrChannels[3];
 	unsigned char* data[3];
-	data[0] = stbi_load(treeTexture, &texWidth[0], &texHeight[0], &nrChannels[0], 0);
+	data[0] = stbi_load(treeTexture1, &texWidth[0], &texHeight[0], &nrChannels[0], 0);
 	data[1] = stbi_load(treeTexture2, &texWidth[1], &texHeight[1], &nrChannels[1], 0);
 	data[2] = stbi_load(treeTexture3, &texWidth[2], &texHeight[2], &nrChannels[2], 0);
 
@@ -399,11 +402,10 @@ void GLrender(float dt) {
 		break;
 	case Scene::GEOMETRY_SHADERS: //--> Dibuixem billboards i l'animació d'explosió dels triangles a partir del geometry shader d'un model importat
 		for (Billboard bb : billboards) bb.Draw();
-		if (explosionAnim)
-		{
-			objects[1].Update();
-			objects[1].Draw();
-		}
+
+		objects[1].Update();
+		objects[1].Draw(currentTime, auxTime, magnitude, explosionAnim, subDivide);
+
 		break;
 	default:
 		break;
@@ -469,7 +471,30 @@ void GUI() {
 #pragma region Objects
 
 	//Informació modificable de cada objecte
-		for (int i = 0; i < objects.size(); i++)
+
+		s = objects[0].GetName() + " Color";
+		ImGui::ColorEdit3(s.c_str(), (float*)&objects[0].objectColor);
+
+		s = objects[0].GetName() + " Position";
+		ImGui::DragFloat3(s.c_str(), (float*)&objects[0].position, 0.01f, -50.f, 50.f);
+
+		s = objects[0].GetName() + " Rotation";
+		ImGui::DragFloat3(s.c_str(), (float*)&objects[0].rotation, 0.01f, 0.f, 360.f);
+
+		s = objects[0].GetName() + " Scale";
+		ImGui::DragFloat3(s.c_str(), (float*)&objects[0].scale, 0.01f, 0.01f, 50.f);
+
+#pragma endregion
+		break;
+		/*case Scene::TEXTURING:
+			break;*/
+	case Scene::GEOMETRY_SHADERS:
+		explosionAnim == true ? s = "Stop Animation" : s = "Start Animation";
+		if (ImGui::Button(s.c_str())) { explosionAnim = !explosionAnim; auxTime = ImGui::GetTime() + 1.0; }
+		ImGui::DragFloat("Time", &currentTime, 0.05f, 0.0f, 10.f);
+		ImGui::DragFloat("Magnitude", &magnitude, 0.05f, 0.0f, 50.f);
+		ImGui::Checkbox("Subdivide triangles", &subDivide);
+		for (int i = 1; i < objects.size(); i++)
 		{
 			ImGui::PushID(i);
 			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Color";
@@ -486,18 +511,11 @@ void GUI() {
 
 			ImGui::PopID();
 		}
-
-#pragma endregion
-		break;
-		/*case Scene::TEXTURING:
-			break;*/
-	case Scene::GEOMETRY_SHADERS:
 		break;
 	default:
 		break;
 	}
-	/////////////////////////////////////////////////////////
-// .........................
+	// .........................
 
 	ImGui::End();
 

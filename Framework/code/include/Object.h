@@ -31,7 +31,7 @@ public:
 
 	void Update();
 	void Draw(Light);
-	void Draw();
+	void Draw(float,float ,float,bool,bool);
 	void CleanUp();
 
 	std::string GetName() { return name; } //--> Retorna el nom de l'objecte corresponent per poder "printar-lo" per pantalla

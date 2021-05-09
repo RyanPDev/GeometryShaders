@@ -6,13 +6,12 @@ const int NUM_BILLBOARDS{ 10 };
 
 // Cat
 const char* catObj = "obj/cat.obj";
-
 #pragma endregion
 
 #pragma region Texture Paths
 
 // Billboards
-const char* treeTexture = "materials/tree_texture.png";
+const char* treeTexture1 = "materials/tree_texture.png";
 const char* treeTexture2 = "materials/tree_texture2.png";
 const char* treeTexture3 = "materials/tree_texture3.png";
 

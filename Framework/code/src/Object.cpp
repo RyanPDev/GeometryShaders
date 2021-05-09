@@ -52,6 +52,11 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	glBindAttribLocation(shader.GetID(), 0, "aPos");
 	glBindAttribLocation(shader.GetID(), 1, "aUvs");
 	glBindAttribLocation(shader.GetID(), 2, "aNormal");
+
+	// Allibera memoria de la cpu
+	/*vertices.clear();
+	normals.clear();
+	uvs.clear();*/
 }
 
 
@@ -98,9 +103,12 @@ void Object::Draw(Light light)
 	glBindVertexArray(0);
 }
 
-void Object::Draw()
+void Object::Draw(float currentTime, float auxTime,float magnitude, bool startAnimation, bool shouldSubdivide)
 {
-	float currentTime = ImGui::GetTime();
+	if (startAnimation)
+	{
+		currentTime = (sin(ImGui::GetTime() - auxTime) + 1.0) / 2.0;
+	}
 
 	shader.Use();
 	glActiveTexture(GL_TEXTURE0);
@@ -112,6 +120,8 @@ void Object::Draw()
 	shader.SetMat4("projection", 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
 
 	shader.SetFloat("time", currentTime);
+	shader.SetFloat("magnitude", magnitude);
+	shader.SetBool("shouldSubdivide", shouldSubdivide);
 
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glUseProgram(0);
