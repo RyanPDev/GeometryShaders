@@ -10,6 +10,9 @@ const char* catObj = "obj/cat.obj";
 
 #pragma region Texture Paths
 
+// Cube
+const char* cubeTexture = "materials/checker_box.jpg";
+
 // Billboards
 const char* treeTexture1 = "materials/tree_texture.png";
 const char* treeTexture2 = "materials/tree_texture2.png";
@@ -21,6 +24,14 @@ const char* catTexture = "materials/cat_texture.jpg";
 #pragma endregion
 
 #pragma region Shader Paths
+
+// Axis
+const char* axisVS = "shaders/axis/axisShader.vs";
+const char* axisFS = "shaders/axis/axisShader.fs";
+
+// Cube
+const char* cubeVS = "shaders/cube/cubeShader.vs";
+const char* cubeFS = "shaders/cube/cubeShader.fs";
 
 // Imported Models
 const char* modelVS = "shaders/models/shader.vs";

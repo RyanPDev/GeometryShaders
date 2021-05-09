@@ -10,11 +10,6 @@ Scene scene;
 std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
 std::vector<Billboard> billboards;
 std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
-bool explosionAnim = false;
-float currentTime = 0;
-float auxTime = 0;
-float magnitude = 2;
-bool subDivide = false;
 
 namespace RenderVars {
 	float FOV = glm::radians(90.f);
@@ -37,6 +32,21 @@ namespace RenderVars {
 	float rota[2] = { 0.f, 0.f };
 }
 namespace RV = RenderVars;
+
+namespace GeometryShadersInfo
+{
+	// Explosion animation
+	bool explosionAnim = false;
+	float currentTime = 0;
+	float auxTime = 0;
+	float magnitude = 5;
+	bool subDivide = false;
+
+	// Billboards
+	float width = 5.0f;
+	float height = 10.0f;
+}
+namespace GSI = GeometryShadersInfo;
 
 ///////// fw decl
 namespace ImGui {
@@ -132,7 +142,7 @@ namespace Axis {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		axisShader = Shader("shaders/axis/axisShader.vs", "shaders/axis/axisShader.fs");
+		axisShader = Shader(axisVS, axisFS);
 
 	}
 	void cleanupAxis() {
@@ -234,8 +244,7 @@ namespace Cube {
 	};
 
 	void setupCube() {
-		data = stbi_load("materials/checker_box.jpg", &texWidth, &texHeight, &nrChannels, 0);
-
+		data = stbi_load(cubeTexture, &texWidth, &texHeight, &nrChannels, 0);
 
 		glGenVertexArrays(1, &cubeVao);
 		glBindVertexArray(cubeVao);
@@ -275,7 +284,7 @@ namespace Cube {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		cubeShader = Shader("shaders/cube/cubeShader.vs", "shaders/cube/cubeShader.fs");
+		cubeShader = Shader(cubeVS, cubeFS);
 	}
 	void cleanupCube() {
 		glDeleteBuffers(4, cubeVbo);
@@ -334,14 +343,15 @@ void GLinit(int width, int height) {
 	Axis::setupAxis();
 	Cube::setupCube();
 
-	//Crida al constructor de la classe amb els diferents objectes
+	// Crida al constructor de la classe amb els diferents objectes
 	Object Neko(catObj, glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), glm::vec3(1, 1, 1), modelVS, modelFS, nullptr, catTexture);
-	Object explosionNeko(catObj, glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0, 4.71f, 0), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec3(1, 1, 1), explosionVS, explosionFS, explosionGS, catTexture);
+	Object explosionNeko(catObj, glm::vec3(0.0f, 6.0f, 3.8f), glm::vec3(0, 4.71f, 0), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1, 1, 1), explosionVS, explosionFS, explosionGS, catTexture);
 
-	//Emmagatzema els objectes creats al vector
+	// Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
 	objects.push_back(explosionNeko);
 
+	// Carreguem varies textures diferents per poder spawnejar billboards randomitzades
 	int texWidth[3], texHeight[3], nrChannels[3];
 	unsigned char* data[3];
 	data[0] = stbi_load(treeTexture1, &texWidth[0], &texHeight[0], &nrChannels[0], 0);
@@ -350,7 +360,7 @@ void GLinit(int width, int height) {
 
 	int random = 0;
 
-	//Creem i emmagatzemem billboards
+	// Creem i emmagatzemem billboards
 	for (int i = 0; i < NUM_BILLBOARDS; i++)
 	{
 		random = rand() % 3;
@@ -401,11 +411,12 @@ void GLrender(float dt) {
 		Cube::draw();
 		break;
 	case Scene::GEOMETRY_SHADERS: //--> Dibuixem billboards i l'animació d'explosió dels triangles a partir del geometry shader d'un model importat
-		for (Billboard bb : billboards) bb.Draw();
+		for (Billboard bb : billboards) bb.Draw(GSI::width, GSI::height);
 
 		objects[1].Update();
-		objects[1].Draw(currentTime, auxTime, magnitude, explosionAnim, subDivide);
-
+		
+		//Animació d'explosió d'un model amb el geometry shader partint del codi proposat en https://learnopengl.com/Advanced-OpenGL/Geometry-Shader //
+		objects[1].Draw(GSI::currentTime, GSI::auxTime, GSI::magnitude, GSI::explosionAnim, GSI::subDivide);
 		break;
 	default:
 		break;
@@ -425,7 +436,12 @@ void GUI() {
 	if (ImGui::Button("Phong Scene")) scene = Scene::PHONG;
 	ImGui::SameLine();
 	if (ImGui::Button("Texturing Scene")) { scene = Scene::TEXTURING; } ImGui::SameLine();
-	if (ImGui::Button("Geometry Scene")) { scene = Scene::GEOMETRY_SHADERS; }
+	if (ImGui::Button("Geometry Scene")) 
+	{ 
+		scene = Scene::GEOMETRY_SHADERS; 
+		GSI::explosionAnim = false;
+		GSI::auxTime = ImGui::GetTime() + 1.0;
+	}
 	switch (scene)
 	{
 	case Scene::PHONG:
@@ -470,8 +486,7 @@ void GUI() {
 
 #pragma region Objects
 
-	//Informació modificable de cada objecte
-
+		//Informació modificable de cada objecte
 		s = objects[0].GetName() + " Color";
 		ImGui::ColorEdit3(s.c_str(), (float*)&objects[0].objectColor);
 
@@ -483,22 +498,31 @@ void GUI() {
 
 		s = objects[0].GetName() + " Scale";
 		ImGui::DragFloat3(s.c_str(), (float*)&objects[0].scale, 0.01f, 0.01f, 50.f);
+		break;
 
 #pragma endregion
-		break;
-		/*case Scene::TEXTURING:
-			break;*/
+	/*case Scene::TEXTURING:
+		break;*/
 	case Scene::GEOMETRY_SHADERS:
-		explosionAnim == true ? s = "Stop Animation" : s = "Start Animation";
-		if (ImGui::Button(s.c_str())) { explosionAnim = !explosionAnim; auxTime = ImGui::GetTime() + 1.0; }
-		ImGui::DragFloat("Time", &currentTime, 0.05f, 0.0f, 10.f);
-		ImGui::DragFloat("Magnitude", &magnitude, 0.05f, 0.0f, 50.f);
-		ImGui::Checkbox("Subdivide triangles", &subDivide);
+		GSI::explosionAnim ? s = "Stop Animation" : s = "Start Animation"; //--> Botó per començar i para l'animació d'explosió
+		if (ImGui::Button(s.c_str()))
+		{
+			GSI::explosionAnim = !GSI::explosionAnim;
+			GSI::auxTime = ImGui::GetTime() + 1.0;
+		}
+		
+		ImGui::Checkbox("Subdivide triangles", &GSI::subDivide); //--> Activar o desactivar subdivisió dels triangles
+		
+		if(!GSI::explosionAnim) ImGui::DragFloat("Time", &GSI::currentTime, 0.02f, 0.0f, 10.f);
+		
+		// Variables de les billboards i animació d'explosió a modificar desde l'interfaç
+		ImGui::DragFloat("Magnitude", &GSI::magnitude, 0.05f, 0.0f, 50.f);
+		ImGui::DragFloat("Tree height", &GSI::height, 0.05f, 0.1f, 50.f);
+		ImGui::DragFloat("Tree width", &GSI::width, 0.05f, 0.1f, 50.f);
+		
 		for (int i = 1; i < objects.size(); i++)
 		{
 			ImGui::PushID(i);
-			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Color";
-			ImGui::ColorEdit3(s.c_str(), (float*)&objects[i].objectColor);
 
 			s = std::to_string(i + 1) + ": " + objects[i].GetName() + " Position";
 			ImGui::DragFloat3(s.c_str(), (float*)&objects[i].position, 0.01f, -50.f, 50.f);

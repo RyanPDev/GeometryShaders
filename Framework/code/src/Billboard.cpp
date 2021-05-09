@@ -10,11 +10,7 @@ Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	if (_data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _data); //TEXTURES
-		//glGenerateMipmap(GL_TEXTURE_2D);
-	}
+	if (_data) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _data); //TEXTURES
 	else std::cout << "Failed to load texture" << std::endl;
 
 	glGenBuffers(1, BillboardVbo);
@@ -31,7 +27,7 @@ Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int 
 	shader = Shader(vertexPath, fragmentPath, geometryPath);
 }
 
-void Billboard::Draw()
+void Billboard::Draw(float _width, float _height)
 {
 	shader.Use();
 	glActiveTexture(GL_TEXTURE0);
@@ -40,6 +36,8 @@ void Billboard::Draw()
 
 	shader.SetMat4("mvp", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 	shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+	shader.SetFloat("width", _width);
+	shader.SetFloat("height", _height);
 	glDrawArrays(GL_POINTS, 0, 1);
 	glUseProgram(0);
 	glBindVertexArray(0);

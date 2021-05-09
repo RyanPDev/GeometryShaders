@@ -1,7 +1,8 @@
 #version 330
 	layout (points) in;
 	layout (triangle_strip, max_vertices = 4) out;
-	float width = 5, height = 6;
+	uniform float width;
+	uniform float height;
 	out vec2 texCoord;
 	uniform mat4 mvp;
 	uniform mat4 view;
