@@ -3,11 +3,12 @@
 //Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
 extern bool loadOBJ(const char* path, std::vector < glm::vec3 >& out_vertices, std::vector < glm::vec2 >& out_uvs, std::vector < glm::vec3 >& out_normals);
 
-Object::Object(const char* _path, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, const char* vertexPath, const char* fragmentPath, const char* geometryPath, glm::vec3 _startColor) :
-	name(_path), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
+Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor,
+	const char* vertexPath, const char* fragmentPath, const char* geometryPath, const char* texturePath) :
+	name(_objPath), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 {
-	bool res = loadOBJ(_path, vertices, uvs, normals);
-	data = stbi_load("materials/cat_texture.jpg", &texWidth, &texHeight, &nrChannels, 0);
+	bool res = loadOBJ(_objPath, vertices, uvs, normals);
+	data = stbi_load(texturePath, &texWidth, &texHeight, &nrChannels, 0);
 
 	name.erase(name.size() - 4, name.size());
 
@@ -66,8 +67,6 @@ void Object::Update()
 
 void Object::Draw(Light light)
 {
-	float currentTime = ImGui::GetTime();
-
 	shader.Use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
@@ -93,6 +92,24 @@ void Object::Draw(Light light)
 	shader.SetFloat("specularStrength", light.specularIntensity);
 	shader.SetFloat3("specularColor", light.specularColor);
 	shader.SetFloat("shininessValue", light.shininessValue);
+
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glUseProgram(0);
+	glBindVertexArray(0);
+}
+
+void Object::Draw()
+{
+	float currentTime = ImGui::GetTime();
+
+	shader.Use();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	glBindVertexArray(ObjVao);
+	shader.SetMat4("model", 1, GL_FALSE, glm::value_ptr(objMat));
+	shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+	shader.SetMat4("projection", 1, GL_FALSE, glm::value_ptr(RenderVars::_projection));
 
 	shader.SetFloat("time", currentTime);
 

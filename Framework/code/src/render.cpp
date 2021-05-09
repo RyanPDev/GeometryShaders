@@ -3,6 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "Object.h"
 #include "Billboard.h"
+#include "Constants.h"
 
 Light light;
 Scene scene;
@@ -313,7 +314,7 @@ namespace Cube {
 }
 
 void GLinit(int width, int height) {
-
+	srand(static_cast<unsigned>(time(nullptr)));
 	stbi_set_flip_vertically_on_load(true);
 
 	glViewport(0, 0, width, height);
@@ -321,34 +322,42 @@ void GLinit(int width, int height) {
 	glClearDepth(1.f);
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 
 	// Setup shaders & geometry
-	light.type = Light::EType::DIRECTIONAL;
+	light.type = Light::EType::DIRECTIONAL; //--> Inicialitzem el primer tipus d'iluminacó a direccional
 	Axis::setupAxis();
 	Cube::setupCube();
 
 	//Crida al constructor de la classe amb els diferents objectes
-	Object Neko("obj/cat.obj", glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), "shaders/models/shader.vs", "shaders/models/shader.fs", "shaders/explosion/exshader.gs");
+	Object Neko(catObj, glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), glm::vec3(1, 1, 1), modelVS, modelFS, nullptr, catTexture);
+	Object explosionNeko(catObj, glm::vec3(-3.11f, 1.6f, 2.71f), glm::vec3(0, 4.71f, 0), glm::vec3(1, 1, 1), glm::vec3(1, 1, 1), explosionVS, explosionFS, explosionGS, catTexture);
 
 	//Emmagatzema els objectes creats al vector
 	objects.push_back(Neko);
+	objects.push_back(explosionNeko);
 
-	//Crea i emmagatzema les billboards
-	int texWidth, texHeight, nrChannels;
-	unsigned char* data = stbi_load("materials/tree_texture.png", &texWidth, &texHeight, &nrChannels, 0);
+	int texWidth[3], texHeight[3], nrChannels[3];
+	unsigned char* data[3];
+	data[0] = stbi_load(treeTexture, &texWidth[0], &texHeight[0], &nrChannels[0], 0);
+	data[1] = stbi_load(treeTexture2, &texWidth[1], &texHeight[1], &nrChannels[1], 0);
+	data[2] = stbi_load(treeTexture3, &texWidth[2], &texHeight[2], &nrChannels[2], 0);
 
-	for (int i = 0; i < 25; i++)
+	int random = 0;
+
+	//Creem i emmagatzemem billboards
+	for (int i = 0; i < NUM_BILLBOARDS; i++)
 	{
-		Billboard billboard(glm::vec3((rand() % 50) - 25, 0, (rand() % 50) - 25), data, texWidth, texHeight);
+		random = rand() % 3;
+		Billboard billboard(glm::vec3((rand() % 50) - 25, 0, (rand() % 50) - 25), data[random], texWidth[random], texHeight[random], bbVS, bbFS, bbGS);
 		billboards.push_back(billboard);
 	}
-	
-	stbi_image_free(data);
 
-	scene = Scene::PHONG;
+	for (int i = 0; i < 3; i++) stbi_image_free(data[i]);
+
+	scene = Scene::PHONG; //--> Inicialitzem la primera escena a la de la iluminació Phong
 }
 
 void GLcleanup() {
@@ -357,14 +366,13 @@ void GLcleanup() {
 
 	/////////////////////////////////////////////////////TODO
 	// Do your cleanup code here
+
 	//Cleanup per cada objecte dins del vector
-	for (int i = 0; i < objects.size(); i++)
-	{
-		objects[i].CleanUp();
-	}
+	for (Object obj : objects) obj.CleanUp();
 	objects.clear(); //--> Allibera memòria del vector d'objectes
 
-	/////////////////////////////////////////////////////////
+	for (Billboard bb : billboards) bb.CleanUp();
+	billboards.clear(); //--> Allibera memòria del vector de billboards
 }
 
 void GLrender(float dt) {
@@ -382,23 +390,20 @@ void GLrender(float dt) {
 	{
 	case Scene::PHONG:
 		//S'actualitza i es dibuixa a cada objecte del vector
-		for (int i = 0; i < objects.size(); i++)
-		{
-			objects[i].Update();
-			objects[i].Draw(light);
-		}
+		objects[0].Update();
+		objects[0].Draw(light);
 		break;
 	case Scene::TEXTURING:
 		Cube::updateCube();
 		Cube::draw();
 		break;
-	case Scene::GEOMETRY_SHADERS:
-		// To Do
-		for (int i = 0; i < billboards.size(); i++)
+	case Scene::GEOMETRY_SHADERS: //--> Dibuixem billboards i l'animació d'explosió dels triangles a partir del geometry shader d'un model importat
+		for (Billboard bb : billboards) bb.Draw();
+		if (explosionAnim)
 		{
-			billboards[i].Draw();
+			objects[1].Update();
+			objects[1].Draw();
 		}
-		objects[0].Draw(light);
 		break;
 	default:
 		break;
@@ -484,10 +489,9 @@ void GUI() {
 
 #pragma endregion
 		break;
-	/*case Scene::TEXTURING:
-		break;*/
+		/*case Scene::TEXTURING:
+			break;*/
 	case Scene::GEOMETRY_SHADERS:
-		if (ImGui::Button("Start explosion animation")) explosionAnim = true;
 		break;
 	default:
 		break;

@@ -8,13 +8,10 @@ private:
 	GLuint textureID;
 	GLuint BillboardVbo[1];
 
-	//int texWidth, texHeight, nrChannels;
-	//unsigned char* data;
-
 	Shader shader;
 
 public:
-	Billboard(glm::vec3, unsigned char*, int, int);
+	Billboard(glm::vec3, unsigned char*, int, int, const char*, const char*, const char* = nullptr);
 
 	glm::vec3 vertexPos;
 

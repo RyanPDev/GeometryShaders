@@ -3,7 +3,8 @@
 	layout (triangle_strip, max_vertices = 3) out;
 
 	uniform float time;
-    in vec2 texCoords[];
+
+	in vec2 Uvs[];
 	out vec2 TexCoords; 
 
 	vec3 GetNormal()
@@ -27,8 +28,9 @@
 	for (int i = 0; i < 3; i++)
 	{
 		gl_Position = explode(gl_in[i].gl_Position, normal);
-		TexCoords = texCoords[i];
+		TexCoords = Uvs[i];
 		EmitVertex();
 	}
+
     EndPrimitive();
 }

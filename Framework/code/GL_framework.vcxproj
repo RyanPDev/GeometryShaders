@@ -150,6 +150,7 @@ xcopy "$(ProjectDir)libs\SDL2.dll" "$(OutDir)" /y /d</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Billboard.h" />
+    <ClInclude Include="include\Constants.h" />
     <ClInclude Include="include\Object.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\stb_image.h" />
