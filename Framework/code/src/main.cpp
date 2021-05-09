@@ -7,7 +7,6 @@
 
 #include "GL_framework.h"
 
-
 extern void GUI();
 extern void GLmousecb(MouseEvent ev);
 extern void GLResize(int width, int height);
@@ -19,7 +18,7 @@ extern void GLrender(float dt);
 namespace {
 	const int expected_fps = 30;
 	const double expected_frametime = 1.0 / expected_fps;
-	const uint32_t expected_frametime_ms = (uint32_t) (1e3 * expected_frametime);
+	const uint32_t expected_frametime_ms = (uint32_t)(1e3 * expected_frametime);
 	uint32_t prev_frametimestamp = 0;
 	uint32_t curr_frametimestamp = 0;
 
@@ -29,7 +28,7 @@ namespace {
 		if ((curr_frametimestamp - prev_frametimestamp) < expected_frametime_ms) {
 			wait = expected_frametime_ms - (curr_frametimestamp - prev_frametimestamp);
 		}
-		if(wait > 0) {
+		if (wait > 0) {
 			Sleep(wait);
 		}
 		prev_frametimestamp = SDL_GetTicks();
@@ -44,7 +43,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	// Create window
-	SDL_Window *mainwindow;
+	SDL_Window* mainwindow;
 	SDL_GLContext maincontext;
 
 	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -56,18 +55,18 @@ int main(int argc, char** argv) {
 
 	mainwindow = SDL_CreateWindow("GL_framework", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		1800, 960, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-		if (!mainwindow) { /* Die if creation failed */
-			SDL_Log("Couldn't create SDL window: %s", SDL_GetError());
-			SDL_Quit();
-			return -1;
-		}
+	if (!mainwindow) { /* Die if creation failed */
+		SDL_Log("Couldn't create SDL window: %s", SDL_GetError());
+		SDL_Quit();
+		return -1;
+	}
 
 	/* Create our opengl context and attach it to our window */
 	maincontext = SDL_GL_CreateContext(mainwindow);
 
 	// Init GLEW
 	GLenum err = glewInit();
-	if(GLEW_OK != err) {
+	if (GLEW_OK != err) {
 		SDL_Log("Glew error: %s\n", glewGetErrorString(err));
 	}
 	SDL_Log("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
@@ -103,12 +102,12 @@ int main(int argc, char** argv) {
 
 		ImGuiIO& io = ImGui::GetIO();
 		GUI();
-		if(!io.WantCaptureMouse) {
-			MouseEvent ev = {io.MousePos.x, io.MousePos.y, 
-				(io.MouseDown[0] ? MouseEvent::Button::Left : 
+		if (!io.WantCaptureMouse) {
+			MouseEvent ev = { io.MousePos.x, io.MousePos.y,
+				(io.MouseDown[0] ? MouseEvent::Button::Left :
 				(io.MouseDown[1] ? MouseEvent::Button::Right :
 				(io.MouseDown[2] ? MouseEvent::Button::Middle :
-				MouseEvent::Button::None)))};
+				MouseEvent::Button::None))) };
 			GLmousecb(ev);
 		}
 		GLrender((float)expected_frametime);

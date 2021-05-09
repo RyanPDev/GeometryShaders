@@ -297,7 +297,6 @@ namespace Cube {
 	void updateCube()
 	{
 		//--> Variable per guardar el temps d'execució
-
 		glm::mat4 t = glm::translate(glm::mat4(), position);
 		glm::mat4 r1 = glm::rotate(glm::mat4(), rotation.x, glm::vec3(1, 0, 0));
 		glm::mat4 r2 = glm::rotate(glm::mat4(), rotation.y + (ImGui::GetTime() * 0.5f), glm::vec3(0, 1, 0));

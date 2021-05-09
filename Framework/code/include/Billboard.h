@@ -15,6 +15,6 @@ public:
 
 	glm::vec3 vertexPos;
 
-	void Draw(float,float);
+	void Draw(float, float);
 	void CleanUp();
 };

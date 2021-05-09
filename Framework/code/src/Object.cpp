@@ -104,7 +104,7 @@ void Object::Draw(Light light)
 	glBindVertexArray(0);
 }
 
-void Object::Draw(float currentTime, float auxTime,float magnitude, bool startAnimation, bool shouldSubdivide)
+void Object::Draw(float currentTime, float auxTime, float magnitude, bool startAnimation, bool shouldSubdivide)
 {
 	if (startAnimation) currentTime = (sin(ImGui::GetTime() - auxTime) + 1.0) / 2.0;
 
@@ -121,7 +121,7 @@ void Object::Draw(float currentTime, float auxTime,float magnitude, bool startAn
 	shader.SetFloat("magnitude", magnitude);
 	shader.SetBool("shouldSubdivide", shouldSubdivide);
 
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size()); 
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glUseProgram(0);
 	glBindVertexArray(0);
 }

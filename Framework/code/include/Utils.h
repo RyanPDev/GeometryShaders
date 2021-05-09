@@ -38,9 +38,7 @@ struct Light {
 };
 
 //Enum per controlar les diferents escenes de la demostració
-enum class Scene { PHONG, TEXTURING, GEOMETRY_SHADERS }; 
-
-
+enum class Scene { PHONG, TEXTURING, GEOMETRY_SHADERS };
 
 namespace RenderVars {
 	extern glm::mat4 _projection;
