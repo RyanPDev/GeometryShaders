@@ -424,7 +424,8 @@ void GLrender(float dt) {
 	ImGui::Render();
 }
 
-void GUI() {
+void GUI() 
+{
 	bool show = true;
 	ImGui::Begin("Physics Parameters", &show, 0);
 
@@ -440,7 +441,7 @@ void GUI() {
 	{ 
 		scene = Scene::GEOMETRY_SHADERS; 
 		GSI::explosionAnim = false;
-		GSI::auxTime = ImGui::GetTime() + 1.0;
+		GSI::auxTime = ImGui::GetTime() + PI * 0.5f;
 	}
 	switch (scene)
 	{
@@ -508,9 +509,8 @@ void GUI() {
 		if (ImGui::Button(s.c_str()))
 		{
 			GSI::explosionAnim = !GSI::explosionAnim;
-			GSI::auxTime = ImGui::GetTime() + 1.0;
+			GSI::auxTime = ImGui::GetTime() + PI * 0.5f;
 		}
-		
 		ImGui::Checkbox("Subdivide triangles", &GSI::subDivide); //--> Activar o desactivar subdivisió dels triangles
 		
 		if(!GSI::explosionAnim) ImGui::DragFloat("Time", &GSI::currentTime, 0.02f, 0.0f, 10.f);

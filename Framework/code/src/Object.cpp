@@ -11,6 +11,7 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	data = stbi_load(texturePath, &texWidth, &texHeight, &nrChannels, 0);
 
 	name.erase(name.size() - 4, name.size());
+	name.erase(name.begin(), name.begin() + 4);
 
 	glGenVertexArrays(1, &ObjVao);
 	glBindVertexArray(ObjVao);
