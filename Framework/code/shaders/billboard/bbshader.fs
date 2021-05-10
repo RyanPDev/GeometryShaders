@@ -7,7 +7,7 @@
 
 	void main(){
 		FragColor = texture(diffuseTexture, texCoord) * vec4(1.0,1.0,1.0,1.0);
-		if (FragColor.rgb == 1 || FragColor.rgb == 0) {
+		if (FragColor.a < 0.1f) {
 			discard;
     }
 }

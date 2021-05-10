@@ -9,8 +9,8 @@
 Light light;
 Scene scene;
 std::vector<Object> objects; //--> Vector que emmagatzema els objectes que s'instancien a l'escena.
-std::vector<Billboard> billboards;
-std::string s; //-->String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
+std::vector<Billboard> billboards; //--> Vector que emmagatzema les billboards que s'instancien a l'escena.
+std::string s; //--> String declarat global per no redeclarar-lo a cada frame. S'usa pels noms del ImGui.
 
 namespace RenderVars {
 	float FOV = glm::radians(90.f);
@@ -218,7 +218,7 @@ namespace Cube {
 		verts[0], verts[4], verts[3], verts[7],
 		verts[1], verts[2], verts[5], verts[6]
 	};
-	glm::vec2 cubeTexCoords[] = {
+	glm::vec2 cubeTexCoords[] = { // Les uvs que pertanyeixen a cada vertex
 		texCoords[1], texCoords[0], texCoords[3], texCoords[2],
 		texCoords[0], texCoords[2], texCoords[1], texCoords[3],
 		texCoords[2], texCoords[3], texCoords[0], texCoords[1],
@@ -245,9 +245,9 @@ namespace Cube {
 	};
 
 	void setupCube() {
-
 		glGenVertexArrays(1, &cubeVao);
 		glBindVertexArray(cubeVao);
+
 		for (int i = 0; i < 6; i++)
 		{
 			data[i] = stbi_load(cubeTexture[i], &texWidth, &texHeight, &nrChannels, 0);
@@ -256,16 +256,14 @@ namespace Cube {
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			if (data[i])
-			{
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data[i]); //TEXTURES
 
-			}
+			if (data[i]) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data[i]); //TEXTURES
 			else std::cout << "Failed to load texture" << std::endl;
 
 			stbi_image_free(data[i]);
 		}
-		int cubeTextures[] = {
+		// Array que determina quina textura s'aplica a cada vertex
+		int cubeTextures[] = { 
 		textureID[0],textureID[0],textureID[0],textureID[0],
 		textureID[1],textureID[1],textureID[1],textureID[1],
 		textureID[2],textureID[2],textureID[2],textureID[2],
@@ -273,6 +271,7 @@ namespace Cube {
 		textureID[4],textureID[4],textureID[4],textureID[4],
 		textureID[5],textureID[5],textureID[5],textureID[5]
 		};
+
 		glGenBuffers(5, cubeVbo);
 
 		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo[0]);
@@ -335,7 +334,7 @@ namespace Cube {
 		cubeShader.SetFloat3("color", glm::vec3(1, 1, 1));
 		for (int i = 0; i < 6; i++)
 		{
-			cubeShader.SetInt("text" + std::to_string(i), i); // We set the texture unit
+			cubeShader.SetInt("text" + std::to_string(i), i); // Setejem la unitat de textura
 			glActiveTexture(GL_TEXTURE0 + i);
 			glBindTexture(GL_TEXTURE_2D, textureID[i]);
 		}
@@ -386,12 +385,12 @@ void GLinit(int width, int height) {
 	// Creem i emmagatzemem billboards
 	for (int i = 0; i < NUM_BILLBOARDS; i++)
 	{
-		random = rand() % 3;
+		random = rand() % 3; // Tria una textura random per cada arbre
 		Billboard billboard(glm::vec3((rand() % 50) - 25, 0, (rand() % 50) - 25), data[random], texWidth[random], texHeight[random], bbVS, bbFS, bbGS);
 		billboards.push_back(billboard);
 	}
 
-	for (int i = 0; i < 3; i++) stbi_image_free(data[i]);
+	for (int i = 0; i < 3; i++) stbi_image_free(data[i]); // Alliberem memoria
 
 	scene = Scene::PHONG; //--> Inicialitzem la primera escena a la de la iluminació Phong
 }
@@ -408,7 +407,8 @@ void GLcleanup() {
 	objects.clear(); //--> Allibera memòria del vector d'objectes
 
 	for (Billboard bb : billboards) bb.CleanUp();
-	billboards.clear(); //--> Allibera memòria del vector de billboards
+	billboards.clear(); //--> Allibera memòria del vector de billboardsç
+
 }
 
 void GLrender(float dt) {
@@ -425,11 +425,12 @@ void GLrender(float dt) {
 	switch (scene)
 	{
 	case Scene::PHONG:
-		//S'actualitza i es dibuixa a cada objecte del vector
+		// S'actualitza i es dibuixa a cada objecte del vector
 		objects[0].Update();
 		objects[0].Draw(light);
 		break;
 	case Scene::TEXTURING:
+		// S'actualitza i es dibuixa un cub amb textures diferents per cada cara
 		Cube::updateCube();
 		Cube::draw();
 		break;
@@ -438,7 +439,7 @@ void GLrender(float dt) {
 
 		objects[1].Update();
 
-		//Animació d'explosió d'un model amb el geometry shader partint del codi proposat en https://learnopengl.com/Advanced-OpenGL/Geometry-Shader //
+		// Animació d'explosió d'un model amb el geometry shader partint del codi proposat en https://learnopengl.com/Advanced-OpenGL/Geometry-Shader //
 		objects[1].Draw(GSI::currentTime, GSI::auxTime, GSI::magnitude, GSI::explosionAnim, GSI::subDivide);
 		break;
 	default:

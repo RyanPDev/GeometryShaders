@@ -1,6 +1,7 @@
 #include "Billboard.h"
 
-Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int height, const char* vertexPath, const char* fragmentPath, const char* geometryPath) : vertexPos(_vertexPos)
+Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int height, const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+	: vertexPos(_vertexPos)
 {
 	glGenVertexArrays(1, &BillboardVao);
 	glBindVertexArray(BillboardVao);
@@ -29,16 +30,22 @@ Billboard::Billboard(glm::vec3 _vertexPos, unsigned char* _data, int width, int 
 
 void Billboard::Draw(float _width, float _height)
 {
-	shader.Use();
+	shader.Use(); //--> Activem shader
+
+	//Activem i bindejem textures
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+
 	glBindVertexArray(BillboardVao);
 
+	//Variables que pasem als shaders com a uniforms per ser usats per la gràfica
 	shader.SetMat4("mvp", 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 	shader.SetMat4("view", 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 	shader.SetFloat("width", _width);
 	shader.SetFloat("height", _height);
+
 	glDrawArrays(GL_POINTS, 0, 1);
+
 	glUseProgram(0);
 	glBindVertexArray(0);
 }

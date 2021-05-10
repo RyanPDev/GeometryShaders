@@ -4,16 +4,17 @@ Shader::Shader() : ObjShader{ 0, 0, 0 }, programID(0) {}
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
 {
+	// 1. Llegim els shaders desde un arxiu extern
 	std::string vshader = ReadShaderFromFile(vertexPath);
 	std::string fshader = ReadShaderFromFile(fragmentPath);
 	const char* vShaderCode = vshader.c_str();
 	const char* fShaderCode = fshader.c_str();
 
-	// 2. compile shaders
+	// 2. Compilem els shaders
 	ObjShader[0] = CompileShaderFromFile(vShaderCode, GL_VERTEX_SHADER, "ObjVert"); // Vertex Shader
 	ObjShader[1] = CompileShaderFromFile(fShaderCode, GL_FRAGMENT_SHADER, "ObjFrag"); // Fragment Shader
 
-	// Shader Program
+	// 3. Creem el programa dels shaders
 	programID = glCreateProgram();
 	glAttachShader(programID, ObjShader[0]);
 	glAttachShader(programID, ObjShader[1]);
@@ -31,24 +32,26 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
 
 //Codi de lectura de shaders externs a partir del codi proposat per https://learnopengl.com/Getting-started/Shaders //
 std::string Shader::ReadShaderFromFile(const char* shaderPath)
-{
-	// 1. retrieve the vertex/fragment source code from filePath
+{	
 	std::string shaderCode;
 	std::ifstream shaderFile;
 
-	// ensure ifstream objects can throw exceptions:
+	// Ens asegurem de que el ifstream pugui llençar les excepcions
 	shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
 	try
 	{
-		// open files
+		// obrir arxius
 		shaderFile.open(shaderPath);
 		std::stringstream shaderStream;
-		// read file's buffer contents into streams
+
+		// llegir el contingut del buffer i enviar ho al stream
 		shaderStream << shaderFile.rdbuf();
-		// close file handlers
+
+		// Tanquem el handler del arxiu
 		shaderFile.close();
-		// convert stream into string
+
+		// convertim el stream en una string
 		shaderCode = shaderStream.str();
 	}
 	catch (std::ifstream::failure e)
@@ -104,6 +107,8 @@ void Shader::CleanUpShader()
 	glDeleteShader(ObjShader[1]);
 }
 
+#pragma region Uniform Setters
+
 void Shader::SetBool(const std::string& name, bool value) const
 {
 	glUniform1i(glGetUniformLocation(programID, name.c_str()), (int)value);
@@ -128,3 +133,5 @@ void Shader::SetMat4(const std::string& name, int size, bool transpose, float* v
 {
 	glUniformMatrix4fv(glGetUniformLocation(programID, name.c_str()), size, transpose, value);
 }
+
+#pragma endregion

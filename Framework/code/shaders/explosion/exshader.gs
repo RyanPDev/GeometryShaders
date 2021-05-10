@@ -10,8 +10,8 @@
 	out vec2 TexCoords; 
 	vec3 normal;
 	vec4 vertices[3];	// 0 = 0-1
-						// 1 = 1-2
-						// 2 = 2-0
+				// 1 = 1-2
+				// 2 = 2-0
 
 	vec3 GetNormal(vec3 v1, vec3 v2, vec3 v3)
 	{

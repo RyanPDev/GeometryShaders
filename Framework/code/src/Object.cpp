@@ -1,6 +1,6 @@
 #include "Object.h"
 
-//Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
+// Declaració de la funció del load_obj.cpp que serveix per cargar els vertexs, uvs i normals dels models que importem
 extern bool loadOBJ(const char* path, std::vector < glm::vec3 >& out_vertices, std::vector < glm::vec2 >& out_uvs, std::vector < glm::vec3 >& out_normals);
 
 Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, glm::vec3 _startScale, glm::vec3 _startColor,
@@ -8,10 +8,11 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	name(_objPath), position(_startPos), rotation(_startRot), scale(_startScale), objectColor(_startColor), initPos(_startPos), initRot(_startRot), initScale(_startScale)
 {
 	bool res = loadOBJ(_objPath, vertices, uvs, normals);
-	data = stbi_load(texturePath, &texWidth, &texHeight, &nrChannels, 0);
+	data = stbi_load(texturePath, &texWidth, &texHeight, &nrChannels, 0); //--> Carreguem textura
 
 	numVertices = vertices.size();
 
+	// Cambiem l'string del path que rebem de l'objecte per deixar només visible el seu nom per després fer-ho servir al ImGui
 	name.erase(name.size() - 4, name.size());
 	name.erase(name.begin(), name.begin() + 4);
 
@@ -27,7 +28,7 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	}
 	else std::cout << "Failed to load texture" << std::endl;
 
-	stbi_image_free(data);
+	stbi_image_free(data); //--> Alliberem memòria de les textures
 
 	glGenBuffers(3, ObjVbo);
 
@@ -50,6 +51,7 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+	// Es crida un constructor de shader o un altre depenent de si s'ha passat el path d'un geometry shader al constructor de l'objecte
 	geometryPath == nullptr ? shader = Shader(vertexPath, fragmentPath) : shader = Shader(vertexPath, fragmentPath, geometryPath);
 
 	glBindAttribLocation(shader.GetID(), 0, "aPos");

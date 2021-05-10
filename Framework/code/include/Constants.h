@@ -8,6 +8,7 @@ const float PI{ glm::pi<float>() };
 
 // Cat
 const char* catObj = "obj/cat.obj";
+
 #pragma endregion
 
 #pragma region Texture Paths
