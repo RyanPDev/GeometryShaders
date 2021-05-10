@@ -21,6 +21,8 @@ private:
 	std::vector< glm::vec2 > uvs;
 	std::vector< glm::vec3 > normals;
 
+	int numVertices;
+
 	Shader shader;
 
 public:

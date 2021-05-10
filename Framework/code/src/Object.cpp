@@ -10,6 +10,8 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	bool res = loadOBJ(_objPath, vertices, uvs, normals);
 	data = stbi_load(texturePath, &texWidth, &texHeight, &nrChannels, 0);
 
+	numVertices = vertices.size();
+
 	name.erase(name.size() - 4, name.size());
 	name.erase(name.begin(), name.begin() + 4);
 
@@ -55,9 +57,9 @@ Object::Object(const char* _objPath, glm::vec3 _startPos, glm::vec3 _startRot, g
 	glBindAttribLocation(shader.GetID(), 2, "aNormal");
 
 	// Allibera memoria de la cpu
-	//vertices.clear();
-	//normals.clear();
-	//uvs.clear();
+	vertices.clear();
+	normals.clear();
+	uvs.clear();
 }
 
 
@@ -99,7 +101,7 @@ void Object::Draw(Light light)
 	shader.SetFloat3("specularColor", light.specularColor);
 	shader.SetFloat("shininessValue", light.shininessValue);
 
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	glUseProgram(0);
 	glBindVertexArray(0);
 }
@@ -121,7 +123,7 @@ void Object::Draw(float currentTime, float auxTime, float magnitude, bool startA
 	shader.SetFloat("magnitude", magnitude);
 	shader.SetBool("shouldSubdivide", shouldSubdivide);
 
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	glUseProgram(0);
 	glBindVertexArray(0);
 }
