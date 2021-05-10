@@ -13,7 +13,14 @@ const char* catObj = "obj/cat.obj";
 #pragma region Texture Paths
 
 // Cube
-const char* cubeTexture = "materials/checker_box.jpg";
+const char* cubeTextureC = "materials/checker_box.jpg";
+
+const char* cubeTexture[6]{ "materials/cubeTexture2.jpg",
+							"materials/cubeTexture1.jpg",
+							"materials/cubeTexture0.jpg",
+							"materials/cubeTexture3.jpg",
+							"materials/cubeTexture4.jpg",
+							"materials/cubeTexture5.jpg" };
 
 // Billboards
 const char* treeTexture1 = "materials/tree_texture.png";

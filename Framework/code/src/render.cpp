@@ -166,11 +166,11 @@ namespace Axis {
 ////////////////////////////////////////////////// CUBE
 namespace Cube {
 	GLuint cubeVao;
-	GLuint cubeVbo[4];
-	GLuint textureID;
+	GLuint cubeVbo[5];
+	GLuint textureID[6];
 	Shader cubeShader;
 	glm::mat4 objMat = glm::mat4(1.f);
-	unsigned char* data;
+	unsigned char* data[6];
 	glm::vec3 position = glm::vec3(0, 3, 0), rotation = glm::vec3(0, 0, 0), scale = glm::vec3(4, 4, 4);
 	extern const float halfW = 0.5f;
 
@@ -245,22 +245,35 @@ namespace Cube {
 	};
 
 	void setupCube() {
-		data = stbi_load(cubeTexture, &texWidth, &texHeight, &nrChannels, 0);
 
 		glGenVertexArrays(1, &cubeVao);
 		glBindVertexArray(cubeVao);
-		glGenTextures(1, &textureID); //TEXTURES
-		glBindTexture(GL_TEXTURE_2D, textureID); //TEXTURES
-
-		if (data)
+		for (int i = 0; i < 6; i++)
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data); //TEXTURES
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-		else std::cout << "Failed to load texture" << std::endl;
+			data[i] = stbi_load(cubeTexture[i], &texWidth, &texHeight, &nrChannels, 0);
+			glGenTextures(1, &textureID[i]); //TEXTURES
+			glBindTexture(GL_TEXTURE_2D, textureID[i]); //TEXTURES
 
-		stbi_image_free(data);
-		glGenBuffers(4, cubeVbo);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			if (data[i])
+			{
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data[i]); //TEXTURES
+
+			}
+			else std::cout << "Failed to load texture" << std::endl;
+
+			stbi_image_free(data[i]);
+		}
+		int cubeTextures[] = {
+		textureID[0],textureID[0],textureID[0],textureID[0],
+		textureID[1],textureID[1],textureID[1],textureID[1],
+		textureID[2],textureID[2],textureID[2],textureID[2],
+		textureID[3],textureID[3],textureID[3],textureID[3],
+		textureID[4],textureID[4],textureID[4],textureID[4],
+		textureID[5],textureID[5],textureID[5],textureID[5]
+		};
+		glGenBuffers(5, cubeVbo);
 
 		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
@@ -277,8 +290,13 @@ namespace Cube {
 		glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(2);
 
+		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo[3]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(cubeTextures), cubeTextures, GL_STATIC_DRAW);
+		glVertexAttribPointer((GLuint)3, 1, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(3);
+
 		glPrimitiveRestartIndex(UCHAR_MAX);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeVbo[3]);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeVbo[4]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIdx), cubeIdx, GL_STATIC_DRAW);
 
 		glBindVertexArray(0);
@@ -287,16 +305,16 @@ namespace Cube {
 
 		cubeShader = Shader(cubeVS, cubeFS);
 	}
+
 	void cleanupCube() {
-		glDeleteBuffers(4, cubeVbo);
+		glDeleteBuffers(5, cubeVbo);
 		glDeleteVertexArrays(1, &cubeVao);
 		cubeShader.CleanUpShader();
-		glDeleteTextures(1, &textureID);
+		for (int i = 0; i < 6; i++) glDeleteTextures(1, &textureID[i]);
 	}
 
 	void updateCube()
 	{
-		//--> Variable per guardar el temps d'execució
 		glm::mat4 t = glm::translate(glm::mat4(), position);
 		glm::mat4 r1 = glm::rotate(glm::mat4(), rotation.x, glm::vec3(1, 0, 0));
 		glm::mat4 r2 = glm::rotate(glm::mat4(), rotation.y + (ImGui::GetTime() * 0.5f), glm::vec3(0, 1, 0));
@@ -315,9 +333,12 @@ namespace Cube {
 		cubeShader.SetMat4("mv_Mat", 1, GL_FALSE, glm::value_ptr(RV::_modelView));
 		cubeShader.SetMat4("mvpMat", 1, GL_FALSE, glm::value_ptr(RV::_MVP));
 		cubeShader.SetFloat3("color", glm::vec3(1, 1, 1));
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
+		for (int i = 0; i < 6; i++)
+		{
+			cubeShader.SetInt("text" + std::to_string(i), i); // We set the texture unit
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, textureID[i]);
+		}
 		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
 
 		glUseProgram(0);
@@ -336,7 +357,7 @@ void GLinit(int width, int height) {
 	glClearDepth(1.f);
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 
