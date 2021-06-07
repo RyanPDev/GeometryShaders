@@ -51,7 +51,7 @@
 			// Inner Triangle
 			for (int i = 0; i < 3; i++)
 			{
-				vertices[i] = ((gl_in[i].gl_Position + gl_in[int(mod(i + 1, 3))].gl_Position) / 2) + vec4(normal, 0.0) * 0.005f; // Baricenter vertices
+				vertices[i] = ((gl_in[i].gl_Position + gl_in[int(mod(i + 1, 3))].gl_Position) / 2) + vec4					(normal, 0.0) * 0.005f; // Baricenter vertices
 				gl_Position = explode(vertices[i] , normal);
 				TexCoords = (Uvs[i] + Uvs[int(mod(i + 1, 3))]) / 2;
 				EmitVertex();
