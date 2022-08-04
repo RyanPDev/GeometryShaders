@@ -1,2 +1,2 @@
-# AA2_GeometryShaders
+# GeometryShaders
 by Ryan Palazón & Marc Romera
